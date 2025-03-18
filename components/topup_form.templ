@@ -1,0 +1,119 @@
+package components
+
+import "fmt"
+
+type TopupData struct {
+	Title             string
+	UserName          string
+	Role              string
+	Balance           float64
+	CSRFToken         string
+	Error             string
+	Message           string
+	Success           bool
+	User              *User
+	PreselectedUserID int
+}
+
+templ TopupForm(data TopupData) {
+	@AuthenticatedBase(PageData{
+		Title:     data.Title,
+		UserName:  data.UserName,
+		Role:      data.Role,
+		Balance:   data.Balance,
+		CSRFToken: data.CSRFToken,
+		Error:     data.Error,
+		Message:   data.Message,
+		Success:   data.Success,
+	}) {
+		<div class="max-w-7xl mx-auto px-4 py-8">
+			<div class="bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-6 border border-brand-100 mb-6">
+				<div class="flex justify-between items-center">
+					<div>
+						<h1 class="text-2xl font-bold text-gray-800 mb-2">Guthaben aufladen</h1>
+						<p class="text-gray-600">Laden Sie das Guthaben eines Benutzers auf</p>
+					</div>
+				</div>
+			</div>
+			<div class="bg-white/80 backdrop-blur-sm rounded-lg shadow-md p-6">
+				if data.Error != "" {
+					<div class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700">
+						<p class="font-medium">Fehler</p>
+						<p>{ data.Error }</p>
+					</div>
+				}
+				if data.Message != "" {
+					<div class="mb-4 p-4 bg-green-50 border-l-4 border-green-500 text-green-700">
+						<p class="font-medium">Erfolg</p>
+						<p>{ data.Message }</p>
+					</div>
+				}
+				<form method="POST" class="space-y-6">
+					<input type="hidden" name="csrf_token" value={ data.CSRFToken }/>
+					if data.User != nil {
+						<input type="hidden" name="user_id" value={ fmt.Sprint(data.User.ID) }/>
+						<div class="flex items-center gap-3 bg-green-50 px-4 py-3 rounded-lg mb-6">
+							<div class="bg-green-500 text-white p-2 rounded-full">
+								<i class="fas fa-user text-lg"></i>
+							</div>
+							<div>
+								<p class="text-sm text-gray-600">Ausgewählter Benutzer</p>
+								<p class="text-lg font-semibold text-gray-800">{ data.User.Name }</p>
+								<p class="text-sm text-gray-500">Aktuelles Guthaben: { fmt.Sprintf("%.2f €", data.User.Balance) }</p>
+							</div>
+						</div>
+					} else {
+						<div>
+							<label for="card_number" class="block text-sm font-medium text-gray-700 mb-2">
+								Kartennummer
+							</label>
+							<div class="relative">
+								<input
+									type="text"
+									id="card_number"
+									name="card_number"
+									required
+									autocomplete="off"
+									class="block w-full pl-12 pr-4 py-3 text-lg rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white/50"
+									placeholder="Kartennummer scannen oder eingeben"
+								/>
+								<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+									<i class="fas fa-credit-card text-lg text-gray-400"></i>
+								</div>
+							</div>
+						</div>
+					}
+					<div>
+						<label for="amount" class="block text-sm font-medium text-gray-700 mb-2">
+							Betrag
+						</label>
+						<div class="relative">
+							<input
+								type="number"
+								id="amount"
+								name="amount"
+								step="0.01"
+								min="0.01"
+								required
+								class="block w-full pl-12 pr-4 py-3 text-lg rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white/50"
+								placeholder="0.00"
+							/>
+							<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+								<i class="fas fa-euro-sign text-lg text-gray-400"></i>
+							</div>
+						</div>
+					</div>
+					<div class="flex justify-end">
+						<button
+							type="submit"
+							class="px-6 py-3 text-lg font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 rounded-lg transition-colors duration-200"
+						>
+							<i class="fas fa-plus-circle mr-2"></i>
+							Guthaben aufladen
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	}
+}

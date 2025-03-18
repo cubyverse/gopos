@@ -1,0 +1,348 @@
+package components
+
+import (
+	"fmt"
+	"time"
+)
+
+type StatsData struct {
+	Title          string
+	UserName       string
+	Role           string
+	CSRFToken      string
+	DailyRevenue   float64
+	MonthlyRevenue float64
+	TotalRevenue   float64
+	SystemBalance  float64
+	TopProducts    []ProductStats
+	LowProducts    []ProductStats
+	Error          string
+	Message        string
+	Success        bool
+}
+
+type ProductStats struct {
+	Name     string
+	Quantity int
+	Revenue  float64
+}
+
+// StatCardVariant definiert die verschiedenen Designvarianten für StatCards
+type StatCardVariant string
+
+const (
+	StatCardPrimary   StatCardVariant = "primary"
+	StatCardSecondary StatCardVariant = "secondary"
+	StatCardSuccess   StatCardVariant = "success"
+	StatCardDanger    StatCardVariant = "danger"
+	StatCardWarning   StatCardVariant = "warning"
+	StatCardInfo      StatCardVariant = "info"
+)
+
+// getStatCardClasses gibt die CSS-Klassen für die StatCard basierend auf der Variante zurück
+func getStatCardClasses(variant StatCardVariant) string {
+	baseClasses := "rounded-lg p-6 shadow-sm"
+
+	switch variant {
+	case StatCardPrimary:
+		return baseClasses + " bg-gradient-to-br from-brand-500 to-brand-600 text-white"
+	case StatCardSecondary:
+		return baseClasses + " bg-gradient-to-br from-gray-700 to-gray-800 text-white"
+	case StatCardSuccess:
+		return baseClasses + " bg-gradient-to-br from-green-500 to-green-600 text-white"
+	case StatCardDanger:
+		return baseClasses + " bg-gradient-to-br from-red-500 to-red-600 text-white"
+	case StatCardWarning:
+		return baseClasses + " bg-gradient-to-br from-yellow-400 to-yellow-500 text-gray-800"
+	case StatCardInfo:
+		return baseClasses + " bg-gradient-to-br from-blue-500 to-blue-600 text-white"
+	default:
+		return baseClasses + " bg-white border border-gray-200"
+	}
+}
+
+// getStatIconClasses gibt die CSS-Klassen für das StatCard-Icon basierend auf der Variante zurück
+func getStatIconClasses(variant StatCardVariant) string {
+	switch variant {
+	case StatCardPrimary, StatCardSecondary, StatCardSuccess, StatCardDanger, StatCardInfo:
+		return "text-white/80"
+	case StatCardWarning:
+		return "text-gray-800/80"
+	default:
+		return "text-brand-500"
+	}
+}
+
+// StatCard rendert eine Karte für die Anzeige einer einzelnen Statistik oder Metrik
+templ StatCard(title string, value string, icon string, variant StatCardVariant) {
+	<div class={ getStatCardClasses(variant) }>
+		<div class="flex items-center justify-between">
+			<div>
+				<p class="text-sm font-medium opacity-80">{ title }</p>
+				<p class="text-2xl font-bold mt-1">{ value }</p>
+			</div>
+			if icon != "" {
+				<div class={ "text-3xl " + getStatIconClasses(variant) }>
+					<i class={ "fas fa-" + icon }></i>
+				</div>
+			}
+		</div>
+		if variant != "primary" && variant != "secondary" {
+			<div class="mt-3">
+				{ children... }
+			</div>
+		}
+	</div>
+}
+
+// StatTrend rendert einen Trend-Indikator mit Prozentsatz und Richtung
+templ StatTrend(value string, direction string) {
+	if direction == "up" {
+		<div class="flex items-center text-sm text-green-300">
+			<i class="fas fa-arrow-up mr-1"></i>
+			<span>{ value }</span>
+		</div>
+	} else if direction == "down" {
+		<div class="flex items-center text-sm text-red-300">
+			<i class="fas fa-arrow-down mr-1"></i>
+			<span>{ value }</span>
+		</div>
+	} else {
+		<div class="flex items-center text-sm opacity-80">
+			<i class="fas fa-minus mr-1"></i>
+			<span>{ value }</span>
+		</div>
+	}
+}
+
+// StatGrid rendert ein Grid mit mehreren StatCards
+templ StatGrid(cols int) {
+	<div class={ "grid gap-6 " + getStatGridColsClass(cols) }>
+		{ children... }
+	</div>
+}
+
+// getStatGridColsClass gibt die CSS-Klassen für das Grid-Layout basierend auf der Spaltenanzahl zurück
+func getStatGridColsClass(cols int) string {
+	switch cols {
+	case 1:
+		return "grid-cols-1"
+	case 2:
+		return "grid-cols-1 md:grid-cols-2"
+	case 3:
+		return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+	case 4:
+		return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+	default:
+		return "grid-cols-1 md:grid-cols-3"
+	}
+}
+
+// ProgressBar rendert einen Fortschrittsbalken mit optionalem Label
+templ ProgressBar(value int, max int, label string, color string) {
+	<div>
+		if label != "" {
+			<div class="flex justify-between items-center mb-1">
+				<span class="text-sm font-medium text-gray-700">{ label }</span>
+				<span class="text-sm font-medium text-gray-500">{ fmt.Sprintf("%d%%", value*100/max) }</span>
+			</div>
+		}
+		<div class="w-full bg-gray-200 rounded-full h-2.5">
+			<div class={ getProgressBarColorClass(color) + " h-2.5 rounded-full" } style={ fmt.Sprintf("width: %d%%", value*100/max) }></div>
+		</div>
+	</div>
+}
+
+// getProgressBarColorClass gibt die CSS-Klassen für die Farbe des Fortschrittsbalkens zurück
+func getProgressBarColorClass(color string) string {
+	switch color {
+	case "primary":
+		return "bg-brand-600"
+	case "success":
+		return "bg-green-600"
+	case "danger":
+		return "bg-red-600"
+	case "warning":
+		return "bg-yellow-500"
+	case "info":
+		return "bg-blue-600"
+	default:
+		return "bg-brand-600"
+	}
+}
+
+// DashboardSection rendert einen Abschnitt des Dashboards mit Titel und Inhalt
+templ DashboardSection(title string, description string) {
+	<section class="mb-8">
+		<div class="mb-4">
+			<h2 class="text-2xl font-bold text-gray-800">{ title }</h2>
+			if description != "" {
+				<p class="text-gray-600 mt-1">{ description }</p>
+			}
+		</div>
+		<div>
+			{ children... }
+		</div>
+	</section>
+}
+
+// ValueComparisonCard rendert eine Karte, die zwei Werte vergleicht (aktuell vs. vorherige Periode)
+templ ValueComparisonCard(title string, currentValue string, previousValue string, percentChange float64, icon string) {
+	<div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+		<div class="flex items-center justify-between mb-4">
+			<h3 class="text-lg font-medium text-gray-700">{ title }</h3>
+			if icon != "" {
+				<i class={ "fas fa-" + icon + " text-xl text-brand-500" }></i>
+			}
+		</div>
+		<div class="flex items-end space-x-4">
+			<div>
+				<p class="text-3xl font-bold text-gray-900">{ currentValue }</p>
+			</div>
+			<div>
+				<p class="text-sm text-gray-500 mb-1">vorher</p>
+				<p class="text-gray-600">{ previousValue }</p>
+			</div>
+			<div class="flex-grow"></div>
+			<div>
+				if percentChange > 0 {
+					<div class="flex items-center text-green-600">
+						<i class="fas fa-arrow-up mr-1"></i>
+						<span>{ fmt.Sprintf("%.1f%%", percentChange) }</span>
+					</div>
+				} else if percentChange < 0 {
+					<div class="flex items-center text-red-600">
+						<i class="fas fa-arrow-down mr-1"></i>
+						<span>{ fmt.Sprintf("%.1f%%", -percentChange) }</span>
+					</div>
+				} else {
+					<div class="flex items-center text-gray-600">
+						<i class="fas fa-minus mr-1"></i>
+						<span>0%</span>
+					</div>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+templ Stats(data StatsData) {
+	@AuthenticatedBase(PageData{
+		Title:     data.Title,
+		UserName:  data.UserName,
+		Role:      data.Role,
+		CSRFToken: data.CSRFToken,
+		Error:     data.Error,
+		Message:   data.Message,
+		Success:   data.Success,
+	}) {
+		<div class="space-y-6 max-w-7xl mx-auto px-4 py-8">
+			<div class="flex justify-between items-center">
+				<h1 class="text-2xl font-bold text-gray-800">Statistiken & Analysen</h1>
+				<div class="text-sm text-gray-500">
+					Stand: { time.Now().Format("02.01.2006 15:04") }
+				</div>
+			</div>
+			// Revenue Cards
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+				// Daily Revenue
+				<div class="bg-white rounded-2xl shadow-lg p-6">
+					<div class="flex items-center gap-4 mb-4">
+						<div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0">
+							<i class="fas fa-euro-sign text-2xl"></i>
+						</div>
+						<div>
+							<h2 class="text-lg font-semibold text-gray-600">Heute</h2>
+							<p class="text-3xl font-bold text-gray-800">{ fmt.Sprintf("%.2f €", data.DailyRevenue) }</p>
+						</div>
+					</div>
+				</div>
+				// Monthly Revenue
+				<div class="bg-white rounded-2xl shadow-lg p-6">
+					<div class="flex items-center gap-4 mb-4">
+						<div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+							<i class="fas fa-calendar text-2xl"></i>
+						</div>
+						<div>
+							<h2 class="text-lg font-semibold text-gray-600">Dieser Monat</h2>
+							<p class="text-3xl font-bold text-gray-800">{ fmt.Sprintf("%.2f €", data.MonthlyRevenue) }</p>
+						</div>
+					</div>
+				</div>
+				// Total Revenue
+				<div class="bg-white rounded-2xl shadow-lg p-6">
+					<div class="flex items-center gap-4 mb-4">
+						<div class="w-14 h-14 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+							<i class="fas fa-chart-line text-2xl"></i>
+						</div>
+						<div>
+							<h2 class="text-lg font-semibold text-gray-600">Gesamtumsatz</h2>
+							<p class="text-3xl font-bold text-gray-800">{ fmt.Sprintf("%.2f €", data.TotalRevenue) }</p>
+						</div>
+					</div>
+				</div>
+				// System Balance
+				<div class="bg-white rounded-2xl shadow-lg p-6">
+					<div class="flex items-center gap-4 mb-4">
+						<div class="w-14 h-14 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center flex-shrink-0">
+							<i class="fas fa-wallet text-2xl"></i>
+						</div>
+						<div>
+							<h2 class="text-lg font-semibold text-gray-600">Im System</h2>
+							<p class="text-3xl font-bold text-gray-800">{ fmt.Sprintf("%.2f €", data.SystemBalance) }</p>
+						</div>
+					</div>
+				</div>
+			</div>
+			// Product Statistics
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+				// Top Products
+				<div class="bg-white rounded-2xl shadow-lg p-6">
+					<div class="flex items-center gap-4 mb-6">
+						<div class="w-14 h-14 bg-green-100 text-green-600 rounded-xl flex items-center justify-center flex-shrink-0">
+							<i class="fas fa-arrow-trend-up text-2xl"></i>
+						</div>
+						<h2 class="text-xl font-semibold text-gray-800">Meistverkaufte Produkte</h2>
+					</div>
+					<div class="space-y-4">
+						for _, product := range data.TopProducts {
+							<div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+								<div class="flex-1">
+									<h3 class="font-medium text-gray-800">{ product.Name }</h3>
+									<p class="text-sm text-gray-500">{ fmt.Sprintf("%d verkauft", product.Quantity) }</p>
+								</div>
+								<div class="text-right">
+									<p class="font-semibold text-gray-800">{ fmt.Sprintf("%.2f €", product.Revenue) }</p>
+									<p class="text-sm text-gray-500">Umsatz</p>
+								</div>
+							</div>
+						}
+					</div>
+				</div>
+				// Low-selling Products
+				<div class="bg-white rounded-2xl shadow-lg p-6">
+					<div class="flex items-center gap-4 mb-6">
+						<div class="w-14 h-14 bg-red-100 text-red-600 rounded-xl flex items-center justify-center flex-shrink-0">
+							<i class="fas fa-arrow-trend-down text-2xl"></i>
+						</div>
+						<h2 class="text-xl font-semibold text-gray-800">Wenig verkaufte Produkte</h2>
+					</div>
+					<div class="space-y-4">
+						for _, product := range data.LowProducts {
+							<div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+								<div class="flex-1">
+									<h3 class="font-medium text-gray-800">{ product.Name }</h3>
+									<p class="text-sm text-gray-500">{ fmt.Sprintf("%d verkauft", product.Quantity) }</p>
+								</div>
+								<div class="text-right">
+									<p class="font-semibold text-gray-800">{ fmt.Sprintf("%.2f €", product.Revenue) }</p>
+									<p class="text-sm text-gray-500">Umsatz</p>
+								</div>
+							</div>
+						}
+					</div>
+				</div>
+			</div>
+		</div>
+	}
+}

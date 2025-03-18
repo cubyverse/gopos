@@ -1,0 +1,168 @@
+package components
+
+import "time"
+
+type User struct {
+	ID         int
+	Name       string
+	CardNumber string
+	Role       string
+	Balance    float64
+	Email      string
+	CreatedAt  time.Time
+}
+
+type UsersData struct {
+	Title     string
+	UserName  string
+	Role      string
+	CSRFToken string
+	Users     []User
+	Message   string
+	Error     string
+	Success   bool
+}
+
+// Helper functions
+func getRoleLabel(role string) string {
+	switch role {
+	case "admin":
+		return "Administrator"
+	case "cashier":
+		return "Kassierer"
+	default:
+		return "Kunde"
+	}
+}
+
+func getRoleClasses(role string) string {
+	switch role {
+	case "admin":
+		return "bg-purple-100 text-purple-800"
+	case "cashier":
+		return "bg-blue-100 text-blue-800"
+	default:
+		return "bg-green-100 text-green-800"
+	}
+}
+
+func getBalanceClasses(balance float64) string {
+	if balance < 0 {
+		return "text-red-600"
+	} else if balance == 0 {
+		return "text-gray-600"
+	}
+	return "text-green-600"
+}
+
+// Users renders the users page
+templ Users(data UsersData) {
+	@AuthenticatedBase(PageData{
+		Title:     data.Title,
+		UserName:  data.UserName,
+		Role:      data.Role,
+		CSRFToken: data.CSRFToken,
+		Error:     data.Error,
+		Message:   data.Message,
+		Success:   data.Success,
+	}) {
+		<div class="container mx-auto px-4 py-8">
+			<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+				<div class="flex justify-between items-center">
+					<div>
+						<h1 class="text-2xl font-bold text-gray-800 mb-2">{ data.Title }</h1>
+						<p class="text-gray-600">Verwalten Sie hier alle Benutzer des Systems</p>
+					</div>
+					<button
+						class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+						hx-get="/users/new"
+						hx-target="body"
+						hx-push-url="true"
+						hx-swap="innerHTML"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+							<path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+						</svg>
+						Neuer Benutzer
+					</button>
+				</div>
+			</div>
+
+			if data.Message != "" {
+				<div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4" role="alert">
+					<p>{ data.Message }</p>
+				</div>
+			}
+
+			if data.Error != "" {
+				<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+					<p>{ data.Error }</p>
+				</div>
+			}
+
+			if data.Success {
+				<div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4" role="alert">
+					<p>{ data.Message }</p>
+				</div>
+			}
+
+			<div class="bg-white rounded-lg shadow-md p-6">
+				<div class="flex flex-col sm:flex-row gap-4 mb-6">
+					<div class="flex-1">
+						<input
+							type="text"
+							name="q"
+							placeholder="Benutzer suchen..."
+							class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							hx-get="/users/search"
+							hx-trigger="keyup changed delay:500ms"
+							hx-target="#users-content"
+							hx-include="[name='role'],[name='sort']"
+						/>
+					</div>
+					<div class="flex gap-4">
+						<select
+							name="role"
+							class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							hx-get="/users/filter"
+							hx-trigger="change"
+							hx-target="#users-content"
+							hx-include="[name='q'],[name='sort']"
+						>
+							<option value="">Alle Rollen</option>
+							<option value="admin">Administrator</option>
+							<option value="cashier">Kassierer</option>
+							<option value="customer">Kunde</option>
+						</select>
+						<select
+							name="sort"
+							class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							hx-get="/users/filter"
+							hx-trigger="change"
+							hx-target="#users-content"
+							hx-include="[name='q'],[name='role']"
+						>
+							<option value="">Sortieren nach...</option>
+							<option value="name">Name</option>
+							<option value="balance">Guthaben</option>
+							<option value="created_at">Erstellungsdatum</option>
+						</select>
+					</div>
+				</div>
+
+				<div id="users-content">
+					@UsersGrid(data)
+				</div>
+			</div>
+		</div>
+	}
+}
+
+func getBalanceIcon(balance float64) string {
+	if balance < 0 {
+		return "arrow-trend-down"
+	} else if balance == 0 {
+		return "equals"
+	}
+	return "arrow-trend-up"
+}

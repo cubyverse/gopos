@@ -1,0 +1,475 @@
+package components
+
+type CheckoutData struct {
+	Title     string
+	UserName  string
+	Role      string
+	CSRFToken string
+	Error     string
+}
+
+templ Checkout(data CheckoutData) {
+	@AuthenticatedBase(PageData{
+		Title:     data.Title,
+		UserName:  data.UserName,
+		Role:      data.Role,
+		CSRFToken: data.CSRFToken,
+	}) {
+		<div class="max-w-7xl mx-auto px-4 py-8">
+			// Success notification (hidden by default)
+			<div
+				id="successNotification"
+				class="fixed inset-x-0 top-0 flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-300 ease-out z-50"
+			>
+				<div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg shadow-lg m-4">
+					<div class="flex items-center">
+						<div class="flex-shrink-0">
+							<i class="fas fa-check-circle text-green-500 text-xl"></i>
+						</div>
+						<div class="ml-3">
+							<p id="successMessage" class="text-sm font-medium"></p>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="space-y-6">
+				// Header Card
+				<div class="bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-6 border border-brand-100">
+					<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+						<div>
+							<h1 class="text-2xl font-bold text-gray-800 mb-2">Kasse</h1>
+							<p class="text-gray-600">Verkäufe schnell und einfach abwickeln</p>
+						</div>
+						<div id="customer-info" class="hidden">
+							<div class="flex items-center gap-3 bg-green-50 px-4 py-2 rounded-lg">
+								<div class="bg-green-500 text-white p-2 rounded-full">
+									<i class="fas fa-user text-lg"></i>
+								</div>
+								<div>
+									<p class="text-sm text-gray-600">Aktiver Kunde</p>
+									<p class="text-lg font-semibold text-gray-800 min-h-[1.75rem] block" id="customer-name">-</p>
+									<p class="text-sm text-gray-500" id="customer-balance">Guthaben: 0.00 €</p>
+								</div>
+								<button
+									onclick="clearCustomer()"
+									class="ml-2 text-gray-400 hover:text-gray-600 transition-colors"
+								>
+									<i class="fas fa-times-circle text-xl"></i>
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+					// Left Column - Input Section
+					<div class="flex flex-col gap-6">
+						// Customer Card
+						<div class="bg-white/80 backdrop-blur-sm rounded-lg shadow-md p-6" id="customer-form-container">
+							<h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+								<i class="fas fa-id-card text-brand-500 mr-2"></i>
+								Kunde identifizieren
+							</h2>
+							<form id="customer-form" class="space-y-4">
+								<input type="hidden" name="csrf_token" value={ data.CSRFToken }/>
+								<div class="relative">
+									<input
+										type="text"
+										id="card_number"
+										name="card_number"
+										required
+										autocomplete="off"
+										class="block w-full pl-12 pr-4 py-3 text-lg rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white/50"
+										placeholder="Kartennummer scannen oder eingeben"
+									/>
+									<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+										<i class="fas fa-credit-card text-lg text-gray-400"></i>
+									</div>
+								</div>
+							</form>
+						</div>
+						// Product Card
+						<div class="bg-white/80 backdrop-blur-sm rounded-lg shadow-md p-6 mt-0">
+							<h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+								<i class="fas fa-barcode text-brand-500 mr-2"></i>
+								Produkt hinzufügen
+							</h2>
+							<form id="product-form" class="space-y-4">
+								<input type="hidden" name="csrf_token" value={ data.CSRFToken }/>
+								<div class="relative">
+									<input
+										type="text"
+										id="barcode"
+										name="barcode"
+										required
+										autocomplete="off"
+										disabled
+										class="block w-full pl-12 pr-4 py-3 text-lg rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white/50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+										placeholder="Barcode scannen oder eingeben"
+									/>
+									<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+										<i class="fas fa-barcode text-lg text-gray-400"></i>
+									</div>
+								</div>
+							</form>
+						</div>
+					</div>
+					// Right Column - Cart Section
+					<div class="bg-white rounded-lg shadow-md p-4 flex flex-col sticky top-4" style="height: 36rem">
+						<h2 class="text-lg font-semibold mb-2">Warenkorb</h2>
+						<!-- Scrollable cart items -->
+						<div class="flex-1 overflow-y-auto min-h-0">
+							<div id="cartItems" class="space-y-2">
+								<div class="text-center py-8">
+									<i class="fas fa-shopping-basket text-2xl text-gray-400 mb-2"></i>
+									<p class="text-gray-500 text-sm">Warenkorb ist leer</p>
+								</div>
+							</div>
+						</div>
+						<!-- Fixed total and checkout button section -->
+						<div class="border-t pt-3 mt-2 bg-white">
+							<div class="flex justify-between items-center mb-3">
+								<span class="text-lg font-semibold">Gesamt:</span>
+								<span id="cartTotal" class="text-xl font-bold">0.00 €</span>
+							</div>
+							<button
+								id="checkoutBtn"
+								class="w-full bg-green-600 text-white py-4 px-4 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+								disabled
+							>
+								<i class="fas fa-shopping-cart mr-2"></i>
+								Bezahlen
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script>
+            // Only initialize checkout functionality if we're on the checkout page
+            document.addEventListener('DOMContentLoaded', () => {
+                const customerForm = document.getElementById('customer-form');
+                // If we're not on the checkout page, don't initialize anything
+                if (!customerForm) return;
+
+                let cart = [];
+                let customer = null;
+                const cartItemsElement = document.getElementById('cartItems');
+                const cartTotalElement = document.getElementById('cartTotal');
+                const checkoutBtn = document.getElementById('checkoutBtn');
+                const productForm = document.getElementById('product-form');
+                const cardInput = document.getElementById('card_number');
+                const barcodeInput = document.getElementById('barcode');
+                const customerInfo = document.getElementById('customer-info');
+                const customerFormContainer = document.getElementById('customer-form-container');
+                const customerName = document.getElementById('customer-name');
+                const customerBalance = document.getElementById('customer-balance');
+
+                // Focus on card number input
+                cardInput.focus();
+
+                // Make functions available globally for onclick handlers
+                window.updateQuantity = function(index, quantity) {
+                    if (quantity <= 0) {
+                        removeItem(index);
+                        return;
+                    }
+                    cart[index].quantity = quantity;
+                    updateCart();
+                };
+
+                window.removeItem = function(index) {
+                    cart.splice(index, 1);
+                    updateCart();
+                };
+
+                window.clearCustomer = function() {
+                    customer = null;
+                    cardInput.value = '';
+                    barcodeInput.value = '';
+                    barcodeInput.disabled = true;
+                    cardInput.disabled = false;
+                    customerInfo.classList.add('hidden');
+                    customerFormContainer.classList.remove('hidden');
+                    cart = [];
+                    updateCart();
+                    cardInput.focus();
+                };
+
+                // Keep updateCart function local since it's not needed globally
+                function updateCart() {
+                    if (cart.length === 0) {
+                        cartItemsElement.innerHTML = `
+                            <div class="text-center py-8">
+                                <i class="fas fa-shopping-basket text-2xl text-gray-400 mb-2"></i>
+                                <p class="text-gray-500 text-sm">Warenkorb ist leer</p>
+                            </div>
+                        `;
+                        cartTotalElement.textContent = '0.00 €';
+                        checkoutBtn.disabled = true;
+                        return;
+                    }
+
+                    let total = 0;
+                    let html = '';
+
+                    cart.forEach((item, index) => {
+                        total += item.price * item.quantity;
+                        html += `
+                            <div class="p-4 bg-gray-50 rounded-lg shadow mb-4">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-grow">
+                                        <h3 class="text-lg font-medium text-gray-900">${item.name}</h3>
+                                        <p class="text-gray-600">${item.price.toFixed(2)} € pro Stück</p>
+                                    </div>
+                                    <button onclick="removeItem(${index})"
+                                            class="ml-4 p-3 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors text-lg">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                                <div class="mt-4 flex items-center justify-between">
+                                    <div class="flex items-center space-x-4">
+                                        <button onclick="updateQuantity(${index}, ${item.quantity - 1})"
+                                                class="p-3 text-lg bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors min-w-[48px]">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                        <span class="text-lg font-medium min-w-[3ch] text-center">${item.quantity}</span>
+                                        <button onclick="updateQuantity(${index}, ${item.quantity + 1})"
+                                                class="p-3 text-lg bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors min-w-[48px]">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-lg font-medium text-gray-900">
+                                            ${(item.price * item.quantity).toFixed(2)} €
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    cartItemsElement.innerHTML = html;
+                    cartTotalElement.textContent = total.toFixed(2) + ' €';
+                    checkoutBtn.disabled = !customer || cart.length === 0;
+
+                    // Scroll to the bottom of the cart
+                    const cartContainer = cartItemsElement.parentElement;
+                    cartContainer.scrollTop = cartContainer.scrollHeight;
+                }
+
+                // Keep addProduct function local since it's not needed globally
+                function addProduct(product) {
+                    const existingProduct = cart.find(item => item.product_id === product.product_id);
+                    if (existingProduct) {
+                        existingProduct.quantity++;
+                    } else {
+                        cart.push({
+                            product_id: product.product_id,
+                            name: product.name,
+                            price: product.price,
+                            quantity: 1
+                        });
+                    }
+                    updateCart();
+                }
+
+                customerForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const cardNumber = cardInput.value.trim();
+                    
+                    if (!cardNumber) return;
+
+                    try {
+                        const response = await fetch(`/api/customers?card_number=${encodeURIComponent(cardNumber)}`, {
+                            headers: {
+                                'X-CSRF-Token': document.querySelector('input[name="csrf_token"]').value
+                            }
+                        });
+                        const responseText = await response.text();
+                        
+                        if (!response.ok) {
+                            alert(responseText || 'Kunde nicht gefunden');
+                            return;
+                        }
+
+                        try {
+                            console.log('Response text before parsing:', responseText);
+                            customer = JSON.parse(responseText);
+                            console.log('Raw customer data:', customer);
+                            console.log('Customer name:', customer.Name);
+                            console.log('Customer properties:', Object.keys(customer));
+
+                            // Update UI
+                            console.log('Setting customer name to:', customer.Name);
+                            customerName.textContent = customer.Name || 'Unbekannt';
+                            console.log('Customer name element after update:', customerName.textContent);
+                            console.log('Customer name element visibility:', window.getComputedStyle(customerName).display);
+                            
+                            // Balance is already a number in the JSON response
+                            const balance = customer.Balance;
+                            console.log('Balance value:', balance);
+                            customerBalance.textContent = `Guthaben: ${balance.toFixed(2)} €`;
+                            
+                            // Show customer info
+                            customerInfo.classList.remove('hidden');
+                            customerFormContainer.classList.add('hidden');
+                            
+                            // Clear input and enable barcode input
+                            cardInput.value = '';
+                            barcodeInput.disabled = false;
+                            
+                            // Focus on barcode input
+                            barcodeInput.focus();
+                            
+                            // Update cart (to enable/disable checkout button)
+                            updateCart();
+
+                        } catch (parseError) {
+                            console.error('Error parsing response:', parseError);
+                            alert('Fehler beim Verarbeiten der Antwort');
+                            return;
+                        }
+
+                    } catch (error) {
+                        console.error('Network error:', error);
+                        alert('Netzwerkfehler beim Laden der Kundendaten');
+                    }
+                });
+
+                productForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    if (!customer) {
+                        alert('Bitte zuerst einen Kunden auswählen');
+                        cardInput.focus();
+                        barcodeInput.value = '';
+                        return;
+                    }
+
+                    const barcode = barcodeInput.value;
+                    if (!barcode) return;
+
+                    try {
+                        const response = await fetch('/api/products?barcode=' + encodeURIComponent(barcode));
+                        if (!response.ok) {
+                            const error = await response.text();
+                            alert(error || 'Produkt nicht gefunden');
+                            barcodeInput.select();
+                            return;
+                        }
+                        const product = await response.json();
+                        addProduct(product);
+                        barcodeInput.value = '';
+                        barcodeInput.focus();
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Ein Fehler ist aufgetreten');
+                        barcodeInput.select();
+                    }
+                });
+
+                checkoutBtn.addEventListener('click', async () => {
+                    if (!customer || cart.length === 0) return;
+
+                    console.log('Starting checkout process...');
+                    console.log('Customer:', customer);
+                    console.log('Cart:', cart);
+
+                    try {
+                        // Calculate total from cart items instead of parsing from text
+                        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                        console.log('Calculated total:', total);
+                        
+                        const requestData = {
+                            card_number: customer.CardNumber,
+                            total: total,
+                            items: cart.map(item => ({
+                                product_id: item.product_id,
+                                quantity: item.quantity,
+                                price: item.price,
+                                name: item.name
+                            }))
+                        };
+                        console.log('Request data:', requestData);
+                        
+                        const response = await fetch('/api/checkout', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': document.querySelector('input[name="csrf_token"]').value
+                            },
+                            body: JSON.stringify(requestData)
+                        });
+
+                        console.log('Checkout response status:', response.status);
+                        const responseText = await response.text();
+                        console.log('Checkout response text:', responseText);
+                        
+                        if (!response.ok) {
+                            alert(responseText || 'Ein Fehler ist aufgetreten');
+                            return;
+                        }
+
+                        try {
+                            const result = JSON.parse(responseText);
+                            console.log('Checkout result:', result);
+
+                            // Show success message
+                            showSuccessNotification(`Transaktion erfolgreich! Neues Guthaben: ${result.balance.toFixed(2)} €`);
+
+                            // Clear cart and customer
+                            cart = [];
+                            clearCustomer();
+                            updateCart();
+
+                        } catch (parseError) {
+                            console.error('Error parsing result:', parseError);
+                            alert('Fehler beim Verarbeiten der Antwort');
+                        }
+
+                    } catch (error) {
+                        console.error('Checkout error:', error);
+                        alert('Ein Fehler ist aufgetreten');
+                    }
+                });
+
+                // Handle Enter key in barcode input
+                barcodeInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        productForm.dispatchEvent(new Event('submit'));
+                    }
+                });
+
+                // Handle Enter key in card input
+                cardInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        customerForm.dispatchEvent(new Event('submit'));
+                    }
+                });
+            });
+
+            // Keep showSuccessNotification function global since it might be needed by other components
+            function showSuccessNotification(message) {
+                const notification = document.getElementById('successNotification');
+                if (!notification) return;
+                
+                const messageElement = document.getElementById('successMessage');
+                if (!messageElement) return;
+                
+                messageElement.textContent = message;
+                
+                notification.style.display = 'flex';
+                notification.offsetHeight;
+                notification.classList.remove('opacity-0');
+                
+                setTimeout(() => {
+                    notification.classList.add('opacity-0');
+                    setTimeout(() => {
+                        notification.style.display = 'none';
+                    }, 300);
+                }, 2000);
+            }
+        </script>
+	}
+}

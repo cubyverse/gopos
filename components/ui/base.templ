@@ -1,0 +1,329 @@
+package ui
+
+import "gopos/components/utils"
+
+// ********************************
+// * UI BASISKOMPONENTEN
+// * Enthält: Button, Card, Modal, Tabs
+// ********************************
+
+// *** BUTTON KOMPONENTEN ***
+
+// ButtonConfig definiert die Konfiguration für einen Button
+type ButtonConfig struct {
+	Variant   string // primary, secondary, success, danger, warning, info
+	Size      string // small, medium, large
+	Icon      string // Font Awesome Icon Namen ohne "fa-" prefix
+	Disabled  bool
+	Type      string // button, submit, reset
+	FullWidth bool
+	Rounded   string // default, full, none
+	IconOnly  bool
+}
+
+// Default-Werte für ein ButtonConfig
+func DefaultButtonConfig() ButtonConfig {
+	return ButtonConfig{
+		Variant:   "primary",
+		Size:      "medium",
+		Icon:      "",
+		Disabled:  false,
+		Type:      "button",
+		FullWidth: false,
+		Rounded:   "default",
+		IconOnly:  false,
+	}
+}
+
+// getButtonClass generiert die Klassen für einen Button
+func getButtonClass(config ButtonConfig) string {
+	baseClass := "inline-flex items-center justify-center transition-colors duration-200 "
+
+	// Styling basierend auf Farbvariante
+	variantClass := utils.GetColorClasses(config.Variant, "button")
+
+	// Größe
+	sizeClass := utils.GetSizeClasses(config.Size, "button")
+
+	// Rundung
+	roundedClass := "rounded-lg"
+	if config.Rounded == "full" {
+		roundedClass = "rounded-full"
+	} else if config.Rounded == "none" {
+		roundedClass = ""
+	}
+
+	// Volle Breite
+	widthClass := ""
+	if config.FullWidth {
+		widthClass = "w-full"
+	}
+
+	// Icon-only Buttons haben gleiche Höhe/Breite
+	if config.IconOnly {
+		sizeClass = sizeClass + " aspect-square"
+	}
+
+	// Deaktivierte Buttons
+	disabledClass := ""
+	if config.Disabled {
+		disabledClass = "opacity-60 cursor-not-allowed"
+	}
+
+	return baseClass + variantClass + " " + sizeClass + " " + roundedClass + " " + widthClass + " " + disabledClass
+}
+
+// Hilfsfunktion für Icon-Abstand je nach Größe
+func getIconSpacingClass(size string) string {
+	switch size {
+	case "small", "sm":
+		return "mr-1"
+	case "large", "lg":
+		return "mr-3"
+	default:
+		return "mr-2"
+	}
+}
+
+// Button rendert einen standardisierten Button
+templ Button(config ButtonConfig) {
+	<button
+		type={ config.Type }
+		class={ getButtonClass(config) }
+		if config.Disabled {
+			disabled
+		}
+	>
+		if config.Icon != "" && !config.IconOnly {
+			<i class={ "fas fa-" + config.Icon + " " + getIconSpacingClass(config.Size) }></i>
+		} else if config.Icon != "" && config.IconOnly {
+			<i class={ "fas fa-" + config.Icon }></i>
+		}
+		if !config.IconOnly {
+			<span>{ children... }
+</span>
+		}
+	</button>
+}
+
+// LinkButton rendert einen Link im Button-Style
+templ LinkButton(href string, config ButtonConfig) {
+	<a
+		href={ templ.SafeURL(href) }
+		class={ getButtonClass(config) }
+	>
+		if config.Icon != "" && !config.IconOnly {
+			<i class={ "fas fa-" + config.Icon + " " + getIconSpacingClass(config.Size) }></i>
+		} else if config.Icon != "" && config.IconOnly {
+			<i class={ "fas fa-" + config.Icon }></i>
+		}
+		if !config.IconOnly {
+			<span>{ children... }
+</span>
+		}
+	</a>
+}
+
+// PrimaryButton ist ein vorkonfigurierter Primär-Button
+templ PrimaryButton(icon string, disabled bool) {
+	@Button(ButtonConfig{
+		Variant:  "primary",
+		Size:     "medium",
+		Icon:     icon,
+		Disabled: disabled,
+		Type:     "button",
+	}) {
+		{ children... }
+	}
+}
+
+// SubmitButton ist ein vorkonfigurierter Submit-Button
+templ SubmitButton(icon string, disabled bool) {
+	@Button(ButtonConfig{
+		Variant:  "primary",
+		Size:     "medium",
+		Icon:     icon,
+		Disabled: disabled,
+		Type:     "submit",
+	}) {
+		{ children... }
+	}
+}
+
+// DangerButton ist ein vorkonfigurierter Gefahren-Button
+templ DangerButton(icon string, disabled bool) {
+	@Button(ButtonConfig{
+		Variant:  "danger",
+		Size:     "medium",
+		Icon:     icon,
+		Disabled: disabled,
+		Type:     "button",
+	}) {
+		{ children... }
+	}
+}
+
+// SecondaryButton ist ein vorkonfigurierter Sekundär-Button
+templ SecondaryButton(icon string, disabled bool) {
+	@Button(ButtonConfig{
+		Variant:  "secondary",
+		Size:     "medium",
+		Icon:     icon,
+		Disabled: disabled,
+		Type:     "button",
+	}) {
+		{ children... }
+	}
+}
+
+// *** CARD KOMPONENTEN ***
+
+// CardConfig definiert die Konfiguration für eine Card
+type CardConfig struct {
+	Variant     string // default, outlined, elevated, interactive
+	Padding     bool
+	BorderColor string // gray, brand, success, danger, warning, info
+	Shadow      string // none, sm, md, lg, xl
+	Width       string // auto, full, specific widths like w-64
+	Clickable   bool
+}
+
+// DefaultCardConfig gibt die Standardkonfiguration für eine Card zurück
+func DefaultCardConfig() CardConfig {
+	return CardConfig{
+		Variant:     "default",
+		Padding:     true,
+		BorderColor: "gray",
+		Shadow:      "none",
+		Width:       "auto",
+		Clickable:   false,
+	}
+}
+
+// getCardClasses gibt die CSS-Klassen für die Card basierend auf der Konfiguration zurück
+func getCardClasses(config CardConfig) string {
+	baseClasses := "rounded-lg overflow-hidden"
+
+	// Hintergrundfarbe
+	bgClass := " bg-white"
+
+	// Border
+	borderClass := ""
+	if config.Variant == "outlined" || config.Variant == "interactive" {
+		borderColor := "border-gray-200"
+
+		switch config.BorderColor {
+		case "brand":
+			borderColor = "border-brand-200"
+		case "success":
+			borderColor = "border-green-200"
+		case "danger":
+			borderColor = "border-red-200"
+		case "warning":
+			borderColor = "border-yellow-200"
+		case "info":
+			borderColor = "border-blue-200"
+		}
+
+		borderClass = " border " + borderColor
+	}
+
+	// Schatten
+	shadowClass := ""
+	switch config.Shadow {
+	case "sm":
+		shadowClass = " shadow-sm"
+	case "md":
+		shadowClass = " shadow-md"
+	case "lg":
+		shadowClass = " shadow-lg"
+	case "xl":
+		shadowClass = " shadow-xl"
+	}
+
+	if config.Variant == "elevated" {
+		shadowClass = " shadow-md"
+	}
+
+	// Breite
+	widthClass := ""
+	if config.Width != "auto" {
+		if config.Width == "full" {
+			widthClass = " w-full"
+		} else {
+			widthClass = " " + config.Width
+		}
+	}
+
+	// Interaktiv
+	interactiveClass := ""
+	if config.Variant == "interactive" || config.Clickable {
+		interactiveClass = " hover:shadow-md transition-shadow duration-300 cursor-pointer"
+	}
+
+	return baseClasses + bgClass + borderClass + shadowClass + widthClass + interactiveClass
+}
+
+// Card ist eine wiederverwendbare Komponente zum Anzeigen von Inhalten
+templ Card(config CardConfig) {
+	<div class={ getCardClasses(config) }>
+		{ children... }
+	</div>
+}
+
+// LinkCard ist eine anklickbare Card, die zu einer anderen Seite führt
+templ LinkCard(href string, config CardConfig) {
+	// Stelle sicher, dass die Card-Konfiguration interaktiv ist
+	if !config.Clickable {
+		config.Clickable = true
+	}
+	<a href={ templ.SafeURL(href) } class={ getCardClasses(config) + " block" }>
+		{ children... }
+	</a>
+}
+
+// CardHeader rendert den Kopfbereich einer Card mit Titel und optionalem Untertitel
+templ CardHeader(title string, subtitle string, icon string) {
+	<div class="px-6 py-4 border-b border-gray-200">
+		<div class="flex items-center">
+			if icon != "" {
+				<div class="mr-3">
+					<i class={ "fas fa-" + icon + " text-xl text-brand-500" }></i>
+				</div>
+			}
+			<div>
+				<h3 class="text-xl font-semibold text-gray-800">{ title }</h3>
+				if subtitle != "" {
+					<p class="text-sm text-gray-600 mt-1">{ subtitle }</p>
+				}
+			</div>
+		</div>
+	</div>
+}
+
+// CardBody rendert den Hauptbereich einer Card
+templ CardBody(padding bool) {
+	if padding {
+		<div class="px-6 py-4">
+			{ children... }
+		</div>
+	} else {
+		<div>
+			{ children... }
+		</div>
+	}
+}
+
+// CardFooter rendert den Fußbereich einer Card
+templ CardFooter() {
+	<div class="px-6 py-3 bg-gray-50 border-t border-gray-200">
+		{ children... }
+	</div>
+}
+
+// CardImage rendert ein Bild am Anfang einer Card
+templ CardImage(src string, alt string) {
+	<div class="w-full">
+		<img src={ src } alt={ alt } class="w-full h-auto"/>
+	</div>
+}

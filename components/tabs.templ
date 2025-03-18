@@ -1,0 +1,122 @@
+package components
+
+import "fmt"
+
+// TabsContainer rendert einen Container für ein Tab-System
+templ TabsContainer() {
+	<div class="tabs-container">
+		{ children... }
+	</div>
+}
+
+// TabList rendert die Navigationsleiste mit Tab-Buttons
+templ TabList() {
+	<div class="border-b border-gray-200">
+		<nav class="flex -mb-px space-x-8" role="tablist" aria-label="Tabs">
+			{ children... }
+		</nav>
+	</div>
+}
+
+// Tab rendert einen einzelnen Tab-Button
+templ Tab(id string, panelId string, label string, icon string, isActive bool) {
+	<button
+		id={ id }
+		role="tab"
+		aria-controls={ panelId }
+		aria-selected={ fmt.Sprint(isActive) }
+		class={ templ.SafeClass(
+                "py-4 px-1 font-medium text-sm border-b-2 whitespace-nowrap flex items-center focus:outline-none " +
+                map[bool]string{
+                    true: "border-brand-500 text-brand-600",
+                    false: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300",
+                }[isActive],
+            ) }
+	>
+		if icon != "" {
+			<i class={ "fas fa-" + icon + " mr-2" }></i>
+		}
+		{ label }
+	</button>
+}
+
+// TabPanels rendert den Container für die Tab-Inhalte
+templ TabPanels() {
+	<div class="mt-4">
+		{ children... }
+	</div>
+}
+
+// TabPanel rendert den Inhaltsbereich für einen einzelnen Tab
+templ TabPanel(id string, labelledBy string, isActive bool) {
+	<div
+		id={ id }
+		role="tabpanel"
+		aria-labelledby={ labelledBy }
+		tabindex="0"
+		class={ templ.SafeClass(
+                map[bool]string{
+                    true: "",
+                    false: "hidden",
+                }[isActive],
+            ) }
+	>
+		{ children... }
+	</div>
+}
+
+// SimpleTabs ist eine Hilfsfunktion, die ein vollständiges Tab-System mit vordefinierten Tabs rendert
+type TabItem struct {
+	ID    string
+	Label string
+	Icon  string
+}
+
+templ SimpleTabs(items []TabItem, activeIndex int) {
+	<div class="tabs-container">
+		<div class="border-b border-gray-200">
+			<nav class="flex -mb-px space-x-8" role="tablist" aria-label="Tabs">
+				for i, item := range items {
+					<button
+						id={ "tab-" + item.ID }
+						role="tab"
+						aria-controls={ "tab-panel-" + item.ID }
+						aria-selected={ fmt.Sprint(i == activeIndex) }
+						class={ templ.SafeClass(
+                                "py-4 px-1 font-medium text-sm border-b-2 whitespace-nowrap flex items-center focus:outline-none " +
+                                map[bool]string{
+                                    true: "border-brand-500 text-brand-600",
+                                    false: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300",
+                                }[i == activeIndex],
+                            ) }
+					>
+						if item.Icon != "" {
+							<i class={ "fas fa-" + item.Icon + " mr-2" }></i>
+						}
+						{ item.Label }
+					</button>
+				}
+			</nav>
+		</div>
+		<div class="mt-4">
+			for i, item := range items {
+				<div
+					id={ "tab-panel-" + item.ID }
+					role="tabpanel"
+					aria-labelledby={ "tab-" + item.ID }
+					tabindex="0"
+					class={ templ.SafeClass(
+                            map[bool]string{
+                                true: "",
+                                false: "hidden",
+                            }[i == activeIndex],
+                        ) }
+				>
+					if i == activeIndex {
+						{ children... }
+					}
+				</div>
+			}
+		</div>
+	</div>
+}

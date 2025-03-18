@@ -1,0 +1,203 @@
+package components
+
+import "time"
+
+// Version information, set by ldflags during build
+var (
+	Version  = "development"
+	CommitID = "unknown"
+)
+
+type PageData struct {
+	Title       string
+	UserName    string
+	Role        string
+	Balance     float64
+	Message     string
+	Error       string
+	Success     bool
+	CSRFToken   string
+	IsDashboard bool
+}
+
+func getCurrentYear() string {
+	return time.Now().Format("2006")
+}
+
+templ head(data PageData) {
+	<meta charset="UTF-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+	<title>GoPOS - { data.Title }</title>
+	<script src="https://unpkg.com/htmx.org@1.9.6"></script>
+	<link href="/static/css/output.css" rel="stylesheet"/>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
+	<script>
+        // Add CSRF token to all HTMX requests
+        document.body.addEventListener('htmx:configRequest', function(evt) {
+            evt.detail.headers['X-CSRF-Token'] = document.querySelector('meta[name="csrf-token"]').content;
+        });
+    </script>
+	<meta name="csrf-token" content={ data.CSRFToken }/>
+}
+
+templ scripts() {
+	<script>
+        // Add loading state to all forms
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('form').forEach(form => {
+                form.addEventListener('submit', function() {
+                    const button = this.querySelector('button[type="submit"]');
+                    if (button) {
+                        const originalContent = button.innerHTML;
+                        button.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i>Verarbeite...';
+                        button.disabled = true;
+
+                        // Reset button after timeout (in case of error)
+                        setTimeout(() => {
+                            if (button.disabled) {
+                                button.innerHTML = originalContent;
+                                button.disabled = false;
+                            }
+                        }, 5000);
+                    }
+                });
+            });
+
+            // Auto-focus on card_number input if it exists
+            const cardInput = document.getElementById('card_number');
+            if (cardInput) {
+                cardInput.focus();
+            }
+        });
+    </script>
+}
+
+templ navigation(data PageData) {
+	<nav class="fixed top-0 inset-x-0 bg-white/80 backdrop-blur-sm shadow-sm z-50">
+		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+			<div class="flex justify-between h-16">
+				<div class="flex items-center">
+					<a href="/dashboard" class="text-xl font-bold text-gray-800 hover:text-gray-600 transition-colors">
+						<i class="fas fa-cash-register text-gray-800 hover:text-gray-600 transition-colors mr-2"></i>
+						GoPOS
+					</a>
+				</div>
+				<div class="flex items-center space-x-6">
+					<div class="flex items-center space-x-2">
+						<i class="fas fa-user text-gray-600"></i>
+						<span class="text-gray-700">{ data.UserName }</span>
+						if data.Role != "" {
+							<span class="text-sm text-gray-500 ml-2">({ getRoleLabel(data.Role) })</span>
+						}
+					</div>
+					<form method="POST" action="/logout" class="inline">
+						<input type="hidden" name="csrf_token" value={ data.CSRFToken }/>
+						<button
+							type="submit"
+							class="flex items-center space-x-2 px-4 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors duration-200"
+						>
+							<i class="fas fa-sign-out-alt"></i>
+							<span>Abmelden</span>
+						</button>
+					</form>
+				</div>
+			</div>
+		</div>
+	</nav>
+}
+
+templ messages(data PageData) {
+	if data.Error != "" {
+		<div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+			<div class="flex">
+				<div class="flex-shrink-0">
+					<i class="fas fa-exclamation-circle text-red-500"></i>
+				</div>
+				<div class="ml-3">
+					<p class="text-sm text-red-700">{ data.Error }</p>
+				</div>
+			</div>
+		</div>
+	}
+	if data.Success {
+		<div class="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+			<div class="flex">
+				<div class="flex-shrink-0">
+					<i class="fas fa-check-circle text-green-500"></i>
+				</div>
+				<div class="ml-3">
+					<p class="text-sm text-green-700">{ data.Message }</p>
+				</div>
+			</div>
+		</div>
+	}
+}
+
+// Footer component that uses package variables
+templ footer() {
+	<footer class="mt-auto bg-white/80 backdrop-blur-sm border-t border-gray-200 shadow-lg">
+		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+			<div class="flex justify-between items-center h-16 text-sm text-gray-500">
+				<div class="flex items-center space-x-2">
+					if Version != "development" {
+						<a href="https://github.com/cubyverse/gopos" class="text-gray-600 hover:text-gray-800 transition-colors flex items-center space-x-2">
+							<span class="font-medium">Version { Version }</span>
+							if CommitID != "unknown" {
+								<span class="text-gray-400">•</span>
+								<span class="font-mono">{ CommitID[:7] }</span>
+							}
+						</a>
+					}
+				</div>
+				<div>
+					<a href="https://cubyverse.com" class="text-gray-600 hover:text-gray-800 transition-colors"> © { getCurrentYear() } Made by CubyVerse</a>
+				</div>
+			</div>
+		</div>
+	</footer>
+}
+
+templ Base(data PageData) {
+	<!DOCTYPE html>
+	<html lang="de" class="h-full">
+		<head>
+			@head(data)
+		</head>
+		<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
+			<div class="flex-grow">
+				{ children... }
+			</div>
+			@footer()
+			@scripts()
+		</body>
+	</html>
+}
+
+templ AuthenticatedBase(data PageData) {
+	<!DOCTYPE html>
+	<html lang="de" class="h-full">
+		<head>
+			@head(data)
+		</head>
+		<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
+			@navigation(data)
+			<div class="flex-grow pt-20 px-6">
+				<div class="max-w-7xl mx-auto">
+					if !data.IsDashboard {
+						<a
+							href="/dashboard"
+							class="inline-flex items-center mb-4 px-4 py-2 text-sm font-medium text-gray-700 bg-white/50 hover:bg-white/80 rounded-lg transition-colors duration-200 group"
+						>
+							<i class="fas fa-arrow-left mr-2 transform group-hover:-translate-x-1 transition-transform duration-200"></i>
+							Zum Dashboard
+						</a>
+					}
+					@messages(data)
+					{ children... }
+				</div>
+			</div>
+			@footer()
+			@scripts()
+		</body>
+	</html>
+}

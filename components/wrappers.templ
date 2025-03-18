@@ -1,0 +1,211 @@
+package components
+
+import (
+	"gopos/components/data"
+	"gopos/components/ui"
+)
+
+// ********************************
+// * WRAPPER-KOMPONENTEN
+// * Diese Datei stellt Komponenten aus den Unterpaketen
+// * im 'components' Paket zur Verfügung, damit bestehender
+// * Code nicht geändert werden muss.
+// ********************************
+
+// *** BUTTON WRAPPER ***
+
+// Button ist ein Wrapper für ui.Button
+templ Button(config ui.ButtonConfig) {
+	@ui.Button(config) {
+		{ children... }
+	}
+}
+
+// LinkButton ist ein Wrapper für ui.LinkButton
+templ LinkButton(href string, config ui.ButtonConfig) {
+	@ui.LinkButton(href, config) {
+		{ children... }
+	}
+}
+
+// PrimaryButton ist ein Wrapper für ui.PrimaryButton
+templ PrimaryButton(icon string, disabled bool) {
+	@ui.PrimaryButton(icon, disabled) {
+		{ children... }
+	}
+}
+
+// SubmitButton ist ein Wrapper für ui.SubmitButton
+templ SubmitButton(icon string, disabled bool) {
+	@ui.SubmitButton(icon, disabled) {
+		{ children... }
+	}
+}
+
+// DangerButton ist ein Wrapper für ui.DangerButton
+templ DangerButton(icon string, disabled bool) {
+	@ui.DangerButton(icon, disabled) {
+		{ children... }
+	}
+}
+
+// SecondaryButton ist ein Wrapper für ui.SecondaryButton
+templ SecondaryButton(icon string, disabled bool) {
+	@ui.SecondaryButton(icon, disabled) {
+		{ children... }
+	}
+}
+
+// *** CARD WRAPPER ***
+
+// Card ist ein Wrapper für ui.Card
+templ Card(config ui.CardConfig) {
+	@ui.Card(config) {
+		{ children... }
+	}
+}
+
+// LinkCard ist ein Wrapper für ui.LinkCard
+templ LinkCard(href string, config ui.CardConfig) {
+	@ui.LinkCard(href, config) {
+		{ children... }
+	}
+}
+
+// CardHeader ist ein Wrapper für ui.CardHeader
+templ CardHeader(title string, subtitle string, icon string) {
+	@ui.CardHeader(title, subtitle, icon)
+}
+
+// CardBody ist ein Wrapper für ui.CardBody
+templ CardBody(padding bool) {
+	@ui.CardBody(padding) {
+		{ children... }
+	}
+}
+
+// CardFooter ist ein Wrapper für ui.CardFooter
+templ CardFooter() {
+	@ui.CardFooter() {
+		{ children... }
+	}
+}
+
+// CardImage ist ein Wrapper für ui.CardImage
+templ CardImage(src string, alt string) {
+	@ui.CardImage(src, alt)
+}
+
+// *** MESSAGE WRAPPER ***
+
+// SuccessMessage ist ein Wrapper für ui.SuccessMessage
+templ SuccessMessage(title string, dismissible bool) {
+	@ui.SuccessMessage(title, dismissible) {
+		{ children... }
+	}
+}
+
+// ErrorMessage ist ein Wrapper für ui.ErrorMessage
+templ ErrorMessage(title string, dismissible bool) {
+	@ui.ErrorMessage(title, dismissible) {
+		{ children... }
+	}
+}
+
+// WarningMessage ist ein Wrapper für ui.WarningMessage
+templ WarningMessage(title string, dismissible bool) {
+	@ui.WarningMessage(title, dismissible) {
+		{ children... }
+	}
+}
+
+// InfoMessage ist ein Wrapper für ui.InfoMessage
+templ InfoMessage(title string, dismissible bool) {
+	@ui.InfoMessage(title, dismissible) {
+		{ children... }
+	}
+}
+
+// Message ist ein Wrapper für ui.Message
+templ Message(config ui.MessageConfig) {
+	@ui.Message(config) {
+		{ children... }
+	}
+}
+
+// *** MODAL WRAPPER ***
+
+// Modal ist ein Wrapper für ui.Modal
+templ Modal(config ui.ModalConfig) {
+	@ui.Modal(config) {
+		{ children... }
+	}
+}
+
+// ModalHeader ist ein Wrapper für ui.ModalHeader
+templ ModalHeader(title string, config ui.ModalConfig) {
+	@ui.ModalHeader(title, config)
+}
+
+// ModalBody ist ein Wrapper für ui.ModalBody
+templ ModalBody() {
+	@ui.ModalBody() {
+		{ children... }
+	}
+}
+
+// ModalFooter ist ein Wrapper für ui.ModalFooter
+templ ModalFooter() {
+	@ui.ModalFooter() {
+		{ children... }
+	}
+}
+
+// *** TABLE WRAPPER ***
+
+// Table ist ein Wrapper für data.Table
+templ Table(config data.TableConfig) {
+	@data.Table(config) {
+		{ children... }
+	}
+}
+
+// TableHeader ist ein Wrapper für data.TableHeader
+templ TableHeader() {
+	@data.TableHeader() {
+		{ children... }
+	}
+}
+
+// TableHeaderCell ist ein Wrapper für data.TableHeaderCell
+templ TableHeaderCell(align string) {
+	@data.TableHeaderCell(align) {
+		{ children... }
+	}
+}
+
+// TableBody ist ein Wrapper für data.TableBody
+templ TableBody() {
+	@data.TableBody() {
+		{ children... }
+	}
+}
+
+// TableRow ist ein Wrapper für data.TableRow
+templ TableRow(clickable bool, href string) {
+	@data.TableRow(clickable, href) {
+		{ children... }
+	}
+}
+
+// TableCell ist ein Wrapper für data.TableCell
+templ TableCell(align string) {
+	@data.TableCell(align) {
+		{ children... }
+	}
+}
+
+// Pagination ist ein Wrapper für data.Pagination
+templ Pagination(config data.PaginationConfig) {
+	@data.Pagination(config)
+}

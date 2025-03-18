@@ -1,0 +1,274 @@
+package ui
+
+// ********************************
+// * UI FEEDBACK KOMPONENTEN
+// * Enthält: Message, Modal
+// ********************************
+
+// *** MESSAGE KOMPONENTEN ***
+
+// MessageType definiert die Art der Meldung
+type MessageType string
+
+const (
+	Success MessageType = "success"
+	Error   MessageType = "error"
+	Warning MessageType = "warning"
+	Info    MessageType = "info"
+)
+
+// MessageConfig definiert die Konfiguration für eine Message
+type MessageConfig struct {
+	Type        MessageType
+	Title       string
+	Dismissible bool
+	Icon        string
+}
+
+// DefaultMessageConfig gibt die Standardkonfiguration für eine Message zurück
+func DefaultMessageConfig() MessageConfig {
+	return MessageConfig{
+		Type:        Info,
+		Title:       "",
+		Dismissible: true,
+		Icon:        "",
+	}
+}
+
+// Message rendert eine Benachrichtigungsnachricht
+templ Message(config MessageConfig) {
+	<div class={ getMessageClasses(config) }>
+		<div class="flex items-start">
+			<div class="flex-shrink-0">
+				<i class={ getMessageIconClass(config) }></i>
+			</div>
+			<div class="ml-3 w-full">
+				if config.Title != "" {
+					<h3 class="text-sm font-medium">{ config.Title }</h3>
+				}
+				<div class="mt-1 text-sm">
+					{ children... }
+				</div>
+			</div>
+			if config.Dismissible {
+				<div class="ml-auto pl-3">
+					<div class="-mx-1.5 -my-1.5">
+						<button type="button" class="inline-flex bg-transparent text-gray-500 hover:text-gray-700 p-1.5 rounded-md" onclick="this.parentElement.parentElement.parentElement.remove()">
+							<span class="sr-only">Schließen</span>
+							<i class="fas fa-times"></i>
+						</button>
+					</div>
+				</div>
+			}
+		</div>
+	</div>
+}
+
+// getMessageClasses gibt die CSS-Klassen für die Message basierend auf dem Typ zurück
+func getMessageClasses(config MessageConfig) string {
+	baseClasses := "rounded-md p-4 mb-4 "
+
+	switch config.Type {
+	case Success:
+		return baseClasses + "bg-green-50 text-green-800"
+	case Error:
+		return baseClasses + "bg-red-50 text-red-800"
+	case Warning:
+		return baseClasses + "bg-yellow-50 text-yellow-800"
+	case Info:
+		return baseClasses + "bg-blue-50 text-blue-800"
+	default:
+		return baseClasses + "bg-gray-50 text-gray-800"
+	}
+}
+
+// getMessageIconClass gibt die Icon-Klasse basierend auf dem Nachrichtentyp zurück
+func getMessageIconClass(config MessageConfig) string {
+	baseClasses := "fas "
+
+	// Wenn ein spezifisches Icon definiert wurde, verwende dieses
+	if config.Icon != "" {
+		return baseClasses + "fa-" + config.Icon + " " + getMessageIconColorClass(config.Type)
+	}
+
+	// Standard-Icons basierend auf Nachrichtentyp
+	switch config.Type {
+	case Success:
+		return baseClasses + "fa-check-circle " + getMessageIconColorClass(config.Type)
+	case Error:
+		return baseClasses + "fa-exclamation-circle " + getMessageIconColorClass(config.Type)
+	case Warning:
+		return baseClasses + "fa-exclamation-triangle " + getMessageIconColorClass(config.Type)
+	case Info:
+		return baseClasses + "fa-info-circle " + getMessageIconColorClass(config.Type)
+	default:
+		return baseClasses + "fa-info-circle " + getMessageIconColorClass(config.Type)
+	}
+}
+
+// getMessageIconColorClass gibt die Farbklasse für das Icon zurück
+func getMessageIconColorClass(messageType MessageType) string {
+	switch messageType {
+	case Success:
+		return "text-green-600"
+	case Error:
+		return "text-red-600"
+	case Warning:
+		return "text-yellow-600"
+	case Info:
+		return "text-blue-600"
+	default:
+		return "text-gray-600"
+	}
+}
+
+// SuccessMessage ist eine vorkonfigurierte Erfolgsmeldung
+templ SuccessMessage(title string, dismissible bool) {
+	@Message(MessageConfig{
+		Type:        Success,
+		Title:       title,
+		Dismissible: dismissible,
+	}) {
+		{ children... }
+	}
+}
+
+// ErrorMessage ist eine vorkonfigurierte Fehlermeldung
+templ ErrorMessage(title string, dismissible bool) {
+	@Message(MessageConfig{
+		Type:        Error,
+		Title:       title,
+		Dismissible: dismissible,
+	}) {
+		{ children... }
+	}
+}
+
+// WarningMessage ist eine vorkonfigurierte Warnmeldung
+templ WarningMessage(title string, dismissible bool) {
+	@Message(MessageConfig{
+		Type:        Warning,
+		Title:       title,
+		Dismissible: dismissible,
+	}) {
+		{ children... }
+	}
+}
+
+// InfoMessage ist eine vorkonfigurierte Informationsmeldung
+templ InfoMessage(title string, dismissible bool) {
+	@Message(MessageConfig{
+		Type:        Info,
+		Title:       title,
+		Dismissible: dismissible,
+	}) {
+		{ children... }
+	}
+}
+
+// *** MODAL KOMPONENTEN ***
+
+// ModalConfig definiert die Konfiguration für ein Modal
+type ModalConfig struct {
+	ID        string
+	Size      string // small, medium, large, full
+	Closable  bool
+	Centered  bool
+	Animation string // fade, slide, zoom
+}
+
+// DefaultModalConfig gibt die Standardkonfiguration für ein Modal zurück
+func DefaultModalConfig() ModalConfig {
+	return ModalConfig{
+		ID:        "",
+		Size:      "medium",
+		Closable:  true,
+		Centered:  true,
+		Animation: "fade",
+	}
+}
+
+// Modal rendert ein Modal-Dialog
+templ Modal(config ModalConfig) {
+	<div
+		id={ config.ID }
+		class="fixed inset-0 z-50 overflow-y-auto hidden"
+		aria-labelledby={ config.ID + "-title" }
+		role="dialog"
+		aria-modal="true"
+	>
+		<div class="flex items-end justify-center min-h-screen text-center sm:block">
+			<!-- Backdrop -->
+			<div
+				class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+				aria-hidden="true"
+				data-modal-id={ config.ID }
+				onclick="document.getElementById(this.dataset.modalId).classList.add('hidden')"
+			></div>
+			<span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+			<div
+				class={ "relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all " + 
+					getModalSizeClass(config.Size) + " " + 
+					getModalPositionClass(config.Centered) }
+			>
+				{ children... }
+			</div>
+		</div>
+	</div>
+}
+
+// getModalSizeClass gibt die CSS-Klassen für die Modal-Größe zurück
+func getModalSizeClass(size string) string {
+	switch size {
+	case "small", "sm":
+		return "sm:max-w-sm"
+	case "large", "lg":
+		return "sm:max-w-4xl"
+	case "full":
+		return "sm:max-w-full sm:m-4"
+	default: // medium
+		return "sm:max-w-lg"
+	}
+}
+
+// getModalPositionClass gibt die CSS-Klassen für die Modal-Position zurück
+func getModalPositionClass(centered bool) string {
+	if centered {
+		return "sm:align-middle"
+	}
+	return "sm:align-bottom"
+}
+
+// ModalHeader rendert den Kopfbereich eines Modals
+templ ModalHeader(title string, config ModalConfig) {
+	<div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+		<h3 id={ config.ID + "-title" } class="text-xl font-semibold text-gray-800">
+			{ title }
+		</h3>
+		if config.Closable {
+			<button
+				type="button"
+				class="p-2 text-gray-400 hover:text-gray-600 focus:outline-none"
+				data-modal-id={ config.ID }
+				onclick="document.getElementById(this.dataset.modalId).classList.add('hidden')"
+				aria-label="Schließen"
+			>
+				<i class="fas fa-times"></i>
+			</button>
+		}
+	</div>
+}
+
+// ModalBody rendert den Hauptbereich eines Modals
+templ ModalBody() {
+	<div class="px-6 py-4">
+		{ children... }
+	</div>
+}
+
+// ModalFooter rendert den Fußbereich eines Modals
+templ ModalFooter() {
+	<div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
+		{ children... }
+	</div>
+}

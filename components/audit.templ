@@ -1,0 +1,105 @@
+package components
+
+import "fmt"
+import "time"
+import datacomp "gopos/components/data"
+
+type AuditEntry struct {
+	CreatedAt time.Time
+	UserName  string
+	UserID    int
+	Action    string
+	Details   string
+}
+
+type AuditData struct {
+	Title       string
+	UserName    string
+	Role        string
+	CSRFToken   string
+	Entries     []AuditEntry
+	CurrentPage int
+	TotalPages  int
+	PageSize    int
+	TotalCount  int
+}
+
+func getActionClass(action string) string {
+	switch action {
+	case "create_user", "create_product":
+		return "bg-green-100 text-green-800"
+	case "edit_user", "edit_product":
+		return "bg-yellow-100 text-yellow-800"
+	case "delete_user", "delete_product":
+		return "bg-red-100 text-red-800"
+	default:
+		return "bg-blue-100 text-blue-800"
+	}
+}
+
+templ Audit(data AuditData) {
+	@AuthenticatedBase(PageData{
+		Title:     data.Title,
+		UserName:  data.UserName,
+		Role:      data.Role,
+		CSRFToken: data.CSRFToken,
+	}) {
+		<div class="bg-white rounded-lg shadow-md p-6">
+			<div class="flex justify-between items-center mb-6">
+				<h1 class="text-2xl font-bold text-gray-800">Audit Log</h1>
+			</div>
+			if len(data.Entries) > 0 {
+				@datacomp.Table(datacomp.DefaultTableConfig()) {
+					for _, entry := range data.Entries {
+						<tr class="hover:bg-gray-50">
+							@TableCell("left") {
+								<span class="text-sm text-gray-500">{ entry.CreatedAt.Format("02.01.2006 15:04:05") }</span>
+							}
+							@TableCell("left") {
+								<span class="text-sm text-gray-900">{ entry.UserName }</span>
+							}
+							@TableCell("left") {
+								<span class={ templ.SafeClass(fmt.Sprintf("px-2 py-1 text-xs font-medium rounded-full %s", getActionClass(entry.Action))) }>
+									{ entry.Action }
+								</span>
+							}
+							@TableCell("left") {
+								<span class="text-sm text-gray-500">{ entry.Details }</span>
+							}
+						</tr>
+					}
+				}
+				<!-- Pagination Controls -->
+				if data.TotalPages > 1 {
+					<div class="flex items-center justify-between mt-6">
+						<div class="text-sm text-gray-700">
+							Zeige <span class="font-medium">{ fmt.Sprintf("%d", ((data.CurrentPage - 1) * data.PageSize) + 1) }</span> bis 
+							<span class="font-medium">
+								if data.CurrentPage * data.PageSize > data.TotalCount {
+									{ fmt.Sprintf("%d", data.TotalCount) }
+								} else {
+									{ fmt.Sprintf("%d", data.CurrentPage * data.PageSize) }
+								}
+							</span> von <span class="font-medium">{ fmt.Sprintf("%d", data.TotalCount) }</span> Einträgen
+						</div>
+						<!-- Using the new Pagination component -->
+						@datacomp.Pagination(datacomp.PaginationConfig{
+							CurrentPage:        data.CurrentPage,
+							TotalPages:         data.TotalPages,
+							BaseURL:            "/audit",
+							Size:               "medium",
+							Alignment:          "right",
+							ShowFirst:          true,
+							ShowLast:           true,
+						})
+					</div>
+				}
+			} else {
+				<div class="text-center py-12">
+					<i class="fas fa-history text-4xl text-gray-400 mb-4"></i>
+					<p class="text-gray-500">Keine Einträge gefunden</p>
+				</div>
+			}
+		</div>
+	}
+}

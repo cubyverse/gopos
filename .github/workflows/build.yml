@@ -1,0 +1,46 @@
+name: Build GoPOS System
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: 'go.mod'
+
+    - name: Get Version
+      id: get_version
+      run: |
+        VERSION=$(git describe --tags --always || echo "1.0.0")
+        COMMIT_ID=$(git rev-parse HEAD)
+        echo "VERSION=${VERSION}" >> $GITHUB_ENV
+        echo "COMMIT_ID=${COMMIT_ID}" >> $GITHUB_ENV
+
+    - name: Install dependencies
+      run: |
+        go mod download
+        go install github.com/a-h/templ/cmd/templ@latest
+
+    - name: Generate templ files
+      run: templ generate
+
+    - name: Build
+      run: |
+        go build -v -ldflags "-X gopos/components.Version=${VERSION} -X gopos/components.CommitID=${COMMIT_ID}" -o gopos
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: gopos
+        path: gopos

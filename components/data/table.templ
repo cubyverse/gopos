@@ -1,0 +1,404 @@
+package data
+
+import "strconv"
+
+// ********************************
+// * DATENKOMPONENTEN
+// * Enthält: Table, Pagination
+// ********************************
+
+// *** TABLE KOMPONENTEN ***
+
+// TableConfig definiert die Konfiguration für eine Tabelle
+type TableConfig struct {
+	Striped     bool
+	Bordered    bool
+	Hover       bool
+	Small       bool
+	Responsive  bool
+	FixedHeader bool
+	FullWidth   bool
+}
+
+// DefaultTableConfig gibt die Standardkonfiguration für eine Tabelle zurück
+func DefaultTableConfig() TableConfig {
+	return TableConfig{
+		Striped:     true,
+		Bordered:    false,
+		Hover:       true,
+		Small:       false,
+		Responsive:  true,
+		FixedHeader: false,
+		FullWidth:   true,
+	}
+}
+
+// getTableClass gibt die CSS-Klassen für eine Tabelle basierend auf der Konfiguration zurück
+func getTableClass(config TableConfig) string {
+	baseClass := "min-w-full divide-y divide-gray-200 "
+
+	// Striped Rows
+	stripedClass := ""
+	if config.Striped {
+		stripedClass = "table-striped "
+	}
+
+	// Bordered Cells
+	borderedClass := ""
+	if config.Bordered {
+		borderedClass = "table-bordered "
+	}
+
+	// Hover Effect
+	hoverClass := ""
+	if config.Hover {
+		hoverClass = "table-hover "
+	}
+
+	// Small Padding
+	sizeClass := ""
+	if config.Small {
+		sizeClass = "table-sm "
+	}
+
+	// Volle Breite
+	widthClass := ""
+	if config.FullWidth {
+		widthClass = "w-full "
+	}
+
+	return baseClass + stripedClass + borderedClass + hoverClass + sizeClass + widthClass
+}
+
+// getTableWrapperClass gibt die CSS-Klassen für den Tabellen-Wrapper zurück
+func getTableWrapperClass(config TableConfig) string {
+	baseClass := "overflow-hidden "
+
+	// Responsive Tabelle
+	responsiveClass := ""
+	if config.Responsive {
+		responsiveClass = "overflow-x-auto "
+	}
+
+	// Fixed Header
+	headerClass := ""
+	if config.FixedHeader {
+		headerClass = "overflow-y-auto max-h-96 "
+	}
+
+	return baseClass + responsiveClass + headerClass
+}
+
+// Table rendert eine Tabelle mit Header und Body
+templ Table(config TableConfig) {
+	<div class={ getTableWrapperClass(config) }>
+		<table class={ getTableClass(config) }>
+			{ children... }
+		</table>
+	</div>
+}
+
+// TableHeader rendert den Kopfbereich einer Tabelle
+templ TableHeader() {
+	<thead class="bg-gray-50">
+		<tr>
+			{ children... }
+		</tr>
+	</thead>
+}
+
+// TableHeaderCell rendert eine Kopfzelle einer Tabelle
+templ TableHeaderCell(align string) {
+	<th scope="col" class={ "px-6 py-3 text-xs font-medium tracking-wider text-gray-500 uppercase " + getTextAlignClass(align) }>
+		{ children... }
+	</th>
+}
+
+// TableBody rendert den Hauptbereich einer Tabelle
+templ TableBody() {
+	<tbody class="bg-white divide-y divide-gray-200">
+		{ children... }
+	</tbody>
+}
+
+// TableRow rendert eine Zeile in einer Tabelle
+templ TableRow(clickable bool, href string) {
+	if clickable && href != "" {
+		<tr class="hover:bg-gray-50 cursor-pointer" data-href={ href } onclick="window.location.href=this.dataset.href">
+			{ children... }
+		</tr>
+	} else {
+		<tr>
+			{ children... }
+		</tr>
+	}
+}
+
+// TableCell rendert eine Zelle in einer Tabelle
+templ TableCell(align string) {
+	<td class={ "px-6 py-4 whitespace-nowrap text-sm " + getTextAlignClass(align) }>
+		{ children... }
+	</td>
+}
+
+// getTextAlignClass gibt die CSS-Klasse für die Textausrichtung zurück
+func getTextAlignClass(align string) string {
+	switch align {
+	case "left":
+		return "text-left"
+	case "center":
+		return "text-center"
+	case "right":
+		return "text-right"
+	default:
+		return "text-left"
+	}
+}
+
+// *** PAGINATION KOMPONENTEN ***
+
+// PaginationConfig definiert die Konfiguration für eine Pagination
+type PaginationConfig struct {
+	CurrentPage int
+	TotalPages  int
+	Size        string // small, medium, large
+	Alignment   string // left, center, right
+	ShowFirst   bool
+	ShowLast    bool
+	BaseURL     string
+}
+
+// DefaultPaginationConfig gibt die Standardkonfiguration für eine Pagination zurück
+func DefaultPaginationConfig() PaginationConfig {
+	return PaginationConfig{
+		CurrentPage: 1,
+		TotalPages:  1,
+		Size:        "medium",
+		Alignment:   "center",
+		ShowFirst:   true,
+		ShowLast:    true,
+		BaseURL:     "",
+	}
+}
+
+// Pagination rendert eine Komponente zur Seitennavigation
+templ Pagination(config PaginationConfig) {
+	<nav aria-label="Seiten-Navigation" class="mt-6">
+		<ul class={ getPaginationClass(config) }>
+			// Erste Seite
+			if config.ShowFirst && config.CurrentPage > 1 {
+				<li>
+					<a href={ templ.SafeURL(buildPageURL(config.BaseURL, 1)) } class="relative inline-flex items-center px-3 py-2 text-gray-400 hover:text-gray-500 transition-colors duration-150">
+						<span class="sr-only">Erste Seite</span>
+						<i class="fas fa-angle-double-left"></i>
+					</a>
+				</li>
+			}
+			
+			// Vorherige Seite
+			if config.CurrentPage > 1 {
+				<li>
+					<a href={ templ.SafeURL(buildPageURL(config.BaseURL, config.CurrentPage-1)) } class="relative inline-flex items-center px-3 py-2 text-gray-400 hover:text-gray-500 transition-colors duration-150">
+						<span class="sr-only">Vorherige Seite</span>
+						<i class="fas fa-angle-left"></i>
+					</a>
+				</li>
+			}
+			
+			// Seitenzahlen
+			@renderPageNumbers(config)
+			
+			// Nächste Seite
+			if config.CurrentPage < config.TotalPages {
+				<li>
+					<a href={ templ.SafeURL(buildPageURL(config.BaseURL, config.CurrentPage+1)) } class="relative inline-flex items-center px-3 py-2 text-gray-400 hover:text-gray-500 transition-colors duration-150">
+						<span class="sr-only">Nächste Seite</span>
+						<i class="fas fa-angle-right"></i>
+					</a>
+				</li>
+			}
+			
+			// Letzte Seite
+			if config.ShowLast && config.CurrentPage < config.TotalPages {
+				<li>
+					<a href={ templ.SafeURL(buildPageURL(config.BaseURL, config.TotalPages)) } class="relative inline-flex items-center px-3 py-2 text-gray-400 hover:text-gray-500 transition-colors duration-150">
+						<span class="sr-only">Letzte Seite</span>
+						<i class="fas fa-angle-double-right"></i>
+					</a>
+				</li>
+			}
+		</ul>
+	</nav>
+}
+
+// renderPageNumbers rendert die Seitenzahlen
+templ renderPageNumbers(config PaginationConfig) {
+	if config.TotalPages <= 3 {
+		// Wenn 3 oder weniger Seiten, zeige alle
+		for i := 1; i <= config.TotalPages; i++ {
+			if i == config.CurrentPage {
+				<li>
+					<span class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-brand-600 border-b-2 border-brand-500">
+						{ strconv.Itoa(i) }
+					</span>
+				</li>
+			} else {
+				<li>
+					<a href={ templ.SafeURL(buildPageURL(config.BaseURL, i)) } class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors duration-150">
+						{ strconv.Itoa(i) }
+					</a>
+				</li>
+			}
+		}
+	} else {
+		// Berechne die anzuzeigenden Seiten basierend auf der aktuellen Position
+		if config.CurrentPage == 1 {
+			// Erste Seite: zeige 1, 2, 3
+			@renderPageLink(config, 1)
+			@renderPageLink(config, 2)
+			@renderPageLink(config, 3)
+		} else if config.CurrentPage == config.TotalPages {
+			// Letzte Seite: zeige letzte-2, letzte-1, letzte
+			@renderPageLink(config, config.TotalPages - 2)
+			@renderPageLink(config, config.TotalPages - 1)
+			@renderPageLink(config, config.TotalPages)
+		} else {
+			// Mittlere Seiten: zeige aktuelle-1, aktuelle, aktuelle+1
+			@renderPageLink(config, config.CurrentPage - 1)
+			@renderPageLink(config, config.CurrentPage)
+			@renderPageLink(config, config.CurrentPage + 1)
+		}
+	}
+}
+
+// renderPageLink rendert einen einzelnen Seitenlink
+templ renderPageLink(config PaginationConfig, pageNum int) {
+	if pageNum == config.CurrentPage {
+		<li>
+			<span class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-brand-600 border-b-2 border-brand-500">
+				{ strconv.Itoa(pageNum) }
+			</span>
+		</li>
+	} else {
+		<li>
+			<a href={ templ.SafeURL(buildPageURL(config.BaseURL, pageNum)) } class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors duration-150">
+				{ strconv.Itoa(pageNum) }
+			</a>
+		</li>
+	}
+}
+
+// getPaginationClass gibt die CSS-Klassen für die Pagination zurück
+func getPaginationClass(config PaginationConfig) string {
+	baseClass := "flex items-center space-x-2"
+
+	// Größe
+	sizeClass := ""
+	switch config.Size {
+	case "small", "sm":
+		sizeClass = " text-xs"
+	case "large", "lg":
+		sizeClass = " text-base"
+	default:
+		sizeClass = " text-sm"
+	}
+
+	// Ausrichtung
+	alignClass := ""
+	switch config.Alignment {
+	case "left":
+		alignClass = " justify-start"
+	case "right":
+		alignClass = " justify-end"
+	default:
+		alignClass = " justify-center"
+	}
+
+	return baseClass + sizeClass + alignClass
+}
+
+// buildPageURL erstellt die URL für eine bestimmte Seite
+func buildPageURL(baseURL string, page int) string {
+	if baseURL == "" {
+		return "?page=" + strconv.Itoa(page)
+	}
+
+	// Prüfe, ob bereits ein ? in der URL vorhanden ist
+	if contains(baseURL, "?") {
+		if contains(baseURL, "page=") {
+			// Ersetze den vorhandenen page-Parameter
+			return replacePageParam(baseURL, page)
+		} else {
+			// Füge einen neuen page-Parameter hinzu
+			return baseURL + "&page=" + strconv.Itoa(page)
+		}
+	} else {
+		// Füge den ersten Parameter hinzu
+		return baseURL + "?page=" + strconv.Itoa(page)
+	}
+}
+
+// contains prüft, ob ein String einen Teilstring enthält
+func contains(s, substr string) bool {
+	for i := 0; i < len(s); i++ {
+		if i+len(substr) <= len(s) && s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
+
+// replacePageParam ersetzt den page-Parameter in einer URL
+func replacePageParam(url string, page int) string {
+	result := ""
+	found := false
+
+	// Einfache Implementation zur Demonstration
+	// In einem realen Projekt sollte hier ein Regex oder URL-Parser verwendet werden
+	parts := split(url, "&")
+	for i, part := range parts {
+		if contains(part, "page=") {
+			parts[i] = "page=" + strconv.Itoa(page)
+			found = true
+		}
+	}
+
+	if found {
+		result = join(parts, "&")
+	} else {
+		result = url
+	}
+
+	return result
+}
+
+// split teilt einen String an einem Trennzeichen
+func split(s, sep string) []string {
+	var result []string
+	start := 0
+
+	for i := 0; i < len(s); i++ {
+		if i+len(sep) <= len(s) && s[i:i+len(sep)] == sep {
+			result = append(result, s[start:i])
+			start = i + len(sep)
+			i += len(sep) - 1
+		}
+	}
+
+	result = append(result, s[start:])
+	return result
+}
+
+// join verbindet Strings mit einem Trennzeichen
+func join(parts []string, sep string) string {
+	if len(parts) == 0 {
+		return ""
+	}
+
+	result := parts[0]
+	for i := 1; i < len(parts); i++ {
+		result += sep + parts[i]
+	}
+
+	return result
+}

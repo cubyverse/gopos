@@ -1,0 +1,157 @@
+package components
+
+import "fmt"
+
+type ProductFormData struct {
+	Title     string
+	CSRFToken string
+	Product   *Product
+	Error     string
+	Success   bool
+	Message   string
+}
+
+templ ProductForm(data ProductFormData) {
+	@AuthenticatedBase(PageData{
+		Title:     data.Title,
+		CSRFToken: data.CSRFToken,
+		Error:     data.Error,
+		Message:   data.Message,
+		Success:   data.Success,
+	}) {
+		<div class="max-w-2xl mx-auto">
+			<div class="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-brand-100 overflow-hidden">
+				// Header
+				<div class="px-6 py-4 bg-brand-50 border-b border-brand-100">
+					<h2 class="text-2xl font-bold text-gray-800">{ data.Title }</h2>
+					<p class="text-sm text-gray-600 mt-1">
+						if data.Product != nil && data.Product.ID != 0 {
+							Produkt bearbeiten
+						} else {
+							Neues Produkt anlegen
+						}
+					</p>
+				</div>
+				// Error message if present
+				if data.Error != "" {
+					<div class="p-4 bg-red-50 border-b border-red-100">
+						<div class="flex items-center text-red-700">
+							<i class="fas fa-exclamation-circle mr-2"></i>
+							<span>{ data.Error }</span>
+						</div>
+					</div>
+				}
+				<form method="POST" class="p-6 space-y-6" id="productForm">
+					<input type="hidden" name="csrf_token" value={ data.CSRFToken }/>
+					// Barcode Field
+					<div class="space-y-2">
+						<label for="barcode" class="block text-lg font-medium text-gray-700">
+							<i class="fas fa-barcode mr-2 text-brand-500"></i>
+							Barcode
+						</label>
+						<div class="relative">
+							<input
+								type="text"
+								id="barcode"
+								name="barcode"
+								required
+								autocomplete="off"
+								pattern="[0-9]*"
+								inputmode="numeric"
+								class="block w-full px-4 py-3 text-xl rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+								placeholder="Barcode scannen oder eingeben"
+								onkeydown="handleBarcodeKeydown(event)"
+								if data.Product != nil {
+									value={ data.Product.Barcode }
+								}
+								autofocus
+							/>
+							<div class="absolute inset-y-0 right-0 flex items-center pr-3">
+								<i class="fas fa-badge-check text-xl text-gray-400"></i>
+							</div>
+						</div>
+						<p class="text-sm text-gray-500">Scannen Sie den Barcode oder geben Sie ihn manuell ein</p>
+					</div>
+					// Name Field
+					<div class="space-y-2">
+						<label for="name" class="block text-lg font-medium text-gray-700">
+							<i class="fas fa-box mr-2 text-brand-500"></i>
+							Name
+						</label>
+						<input
+							type="text"
+							id="name"
+							name="name"
+							required
+							class="block w-full px-4 py-3 text-xl rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+							placeholder="Produktname"
+							if data.Product != nil {
+								value={ data.Product.Name }
+							}
+						/>
+					</div>
+					// Price Field
+					<div class="space-y-2">
+						<label for="price" class="block text-lg font-medium text-gray-700">
+							<i class="fas fa-euro-sign mr-2 text-brand-500"></i>
+							Preis
+						</label>
+						<div class="relative">
+							<input
+								type="number"
+								id="price"
+								name="price"
+								step="0.01"
+								required
+								class="block w-full px-4 py-3 text-xl rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+								placeholder="0.00"
+								if data.Product != nil {
+									value={ fmt.Sprintf("%.2f", data.Product.Price) }
+								}
+							/>
+							<div class="absolute inset-y-0 right-0 flex items-center pr-3">
+								<span class="text-gray-500">€</span>
+							</div>
+						</div>
+					</div>
+					// Action Buttons
+					<div class="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200">
+						<button
+							type="submit"
+							class="flex-1 inline-flex justify-center items-center px-6 py-4 text-lg font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 shadow-sm hover:shadow-md"
+						>
+							<i class="fas fa-save mr-2"></i>
+							if data.Product != nil && data.Product.ID != 0 {
+								Änderungen speichern
+							} else {
+								Produkt anlegen
+							}
+						</button>
+						<a
+							href="/products"
+							class="flex-1 inline-flex justify-center items-center px-6 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
+						>
+							<i class="fas fa-times mr-2"></i>
+							Abbrechen
+						</a>
+					</div>
+				</form>
+			</div>
+		</div>
+		<script>
+            function handleBarcodeKeydown(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    document.getElementById('name').focus();
+                }
+            }
+
+            // Automatically select barcode when focused
+            document.getElementById('barcode').addEventListener('focus', function() {
+                if (this.value) {
+                    this.select();
+                }
+            });
+        </script>
+	}
+}

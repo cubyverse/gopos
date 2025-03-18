@@ -1,0 +1,238 @@
+package components
+
+import "fmt"
+
+type DashboardData struct {
+	Title     string
+	Name      string
+	Role      string
+	Balance   float64
+	Message   string
+	Error     string
+	Success   bool
+	CSRFToken string
+}
+
+templ Dashboard(data DashboardData) {
+	@AuthenticatedBase(PageData{
+		Title:       data.Title,
+		UserName:    data.Name,
+		Role:        data.Role,
+		Balance:     data.Balance,
+		CSRFToken:   data.CSRFToken,
+		Error:       data.Error,
+		Message:     data.Message,
+		Success:     data.Success,
+		IsDashboard: true,
+	}) {
+		// Success notification
+		<div id="successNotification" class="fixed top-4 right-0 transform translate-x-full transition-transform duration-300 ease-in-out z-50">
+			<div class="bg-green-50 p-4 rounded-l-lg shadow-lg border-l-4 border-green-500 max-w-md">
+				<div class="flex">
+					<div class="flex-shrink-0">
+						<i class="fas fa-check-circle text-green-400 text-xl"></i>
+					</div>
+					<div class="ml-3">
+						<p id="successMessage" class="text-sm font-medium text-green-800"></p>
+					</div>
+				</div>
+			</div>
+		</div>
+		// Error notification
+		<div id="errorNotification" class="fixed top-4 right-0 transform translate-x-full transition-transform duration-300 ease-in-out z-50">
+			<div class="bg-red-50 p-4 rounded-l-lg shadow-lg border-l-4 border-red-500 max-w-md">
+				<div class="flex">
+					<div class="flex-shrink-0">
+						<i class="fas fa-exclamation-circle text-red-400 text-xl"></i>
+					</div>
+					<div class="ml-3">
+						<p id="errorMessage" class="text-sm font-medium text-red-800"></p>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="space-y-8">
+			// Welcome Section with Quick Stats
+			<div class="bg-white rounded-2xl shadow-lg p-6">
+				<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+					<div>
+						<h1 class="text-2xl font-bold text-gray-800">Willkommen, { data.Name }!</h1>
+					</div>
+					<a href="/transactions" class="inline-flex items-center gap-2 text-brand-600 hover:text-brand-700">
+						<i class="fas fa-clock text-lg"></i>
+						<span>Letzte Aktivitäten</span>
+						<i class="fas fa-chevron-right text-sm"></i>
+					</a>
+				</div>
+			</div>
+			// Main Actions Grid
+			<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+				if data.Role == "admin" || data.Role == "cashier" {
+					// Primary Action - Kasse
+					<a href="/checkout" class="col-span-full md:col-span-2 xl:col-span-1 group h-[180px]">
+						<div class="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl shadow-lg p-6 text-white transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl h-full flex flex-col">
+							<div class="flex items-center gap-4">
+								<div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm flex-shrink-0">
+									<i class="fas fa-cash-register text-2xl"></i>
+								</div>
+								<div class="flex flex-col">
+									<h2 class="text-xl font-semibold">Kasse öffnen</h2>
+									<p class="text-teal-100 mt-1">Neue Verkäufe starten</p>
+								</div>
+							</div>
+							<div class="mt-auto flex items-center text-teal-100 group-hover:text-white transition-colors">
+								<span>Jetzt verkaufen</span>
+								<i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform"></i>
+							</div>
+						</div>
+					</a>
+					// Secondary Actions
+					<a href="/users/topup" class="group h-[180px]">
+						<div class="bg-white rounded-2xl shadow-lg p-6 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl h-full flex flex-col">
+							<div class="flex items-center gap-4">
+								<div class="w-14 h-14 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center flex-shrink-0">
+									<i class="fas fa-coins text-2xl"></i>
+								</div>
+								<div class="flex flex-col">
+									<h2 class="text-xl font-semibold text-gray-800">Guthaben</h2>
+									<p class="text-gray-500 mt-1">Guthaben aufladen</p>
+								</div>
+							</div>
+							<div class="mt-auto flex items-center text-gray-600 group-hover:text-gray-700 transition-colors">
+								<span>Aufladen</span>
+								<i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform text-amber-600 group-hover:text-amber-700"></i>
+							</div>
+						</div>
+					</a>
+				}
+				if data.Role == "admin" {
+					// Admin Actions
+					<a href="/products" class="group h-[180px]">
+						<div class="bg-white rounded-2xl shadow-lg p-6 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl h-full flex flex-col">
+							<div class="flex items-center gap-4">
+								<div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0">
+									<i class="fas fa-box text-2xl"></i>
+								</div>
+								<div class="flex flex-col">
+									<h2 class="text-xl font-semibold text-gray-800">Produkte</h2>
+									<p class="text-gray-500 mt-1">Produkte verwalten</p>
+								</div>
+							</div>
+							<div class="mt-auto flex items-center text-gray-600 group-hover:text-gray-700 transition-colors">
+								<span>Verwalten</span>
+								<i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform text-emerald-600 group-hover:text-emerald-700"></i>
+							</div>
+						</div>
+					</a>
+					<a href="/users" class="group h-[180px]">
+						<div class="bg-white rounded-2xl shadow-lg p-6 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl h-full flex flex-col">
+							<div class="flex items-center gap-4">
+								<div class="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+									<i class="fas fa-users text-2xl"></i>
+								</div>
+								<div class="flex flex-col">
+									<h2 class="text-xl font-semibold text-gray-800">Benutzer</h2>
+									<p class="text-gray-500 mt-1">Benutzer verwalten</p>
+								</div>
+							</div>
+							<div class="mt-auto flex items-center text-gray-600 group-hover:text-gray-700 transition-colors">
+								<span>Verwalten</span>
+								<i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform text-indigo-600 group-hover:text-indigo-700"></i>
+							</div>
+						</div>
+					</a>
+					<a href="/audit" class="group h-[180px]">
+						<div class="bg-white rounded-2xl shadow-lg p-6 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl h-full flex flex-col">
+							<div class="flex items-center gap-4">
+								<div class="w-14 h-14 bg-violet-100 text-violet-600 rounded-xl flex items-center justify-center flex-shrink-0">
+									<i class="fas fa-history text-2xl"></i>
+								</div>
+								<div class="flex flex-col">
+									<h2 class="text-xl font-semibold text-gray-800">Audit Log</h2>
+									<p class="text-gray-500 mt-1">Aktivitäten einsehen</p>
+								</div>
+							</div>
+							<div class="mt-auto flex items-center text-gray-600 group-hover:text-gray-700 transition-colors">
+								<span>Anzeigen</span>
+								<i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform text-violet-600 group-hover:text-violet-700"></i>
+							</div>
+						</div>
+					</a>
+					<a href="/stats" class="group h-[180px]">
+						<div class="bg-white rounded-2xl shadow-lg p-6 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl h-full flex flex-col">
+							<div class="flex items-center gap-4">
+								<div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+									<i class="fas fa-chart-line text-2xl"></i>
+								</div>
+								<div class="flex flex-col">
+									<h2 class="text-xl font-semibold text-gray-800">Statistiken</h2>
+									<p class="text-gray-500 mt-1">Berichte & Analysen</p>
+								</div>
+							</div>
+							<div class="mt-auto flex items-center text-gray-600 group-hover:text-gray-700 transition-colors">
+								<span>Auswerten</span>
+								<i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform text-blue-600 group-hover:text-blue-700"></i>
+							</div>
+						</div>
+					</a>
+				}
+				if data.Role == "customer" {
+					// Customer View
+					<div class="col-span-full md:col-span-2 xl:col-span-1 h-[180px]">
+						<div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl shadow-lg p-6 text-white h-full flex flex-col">
+							<div class="flex items-center gap-4">
+								<div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm flex-shrink-0">
+									<i class="fas fa-wallet text-2xl"></i>
+								</div>
+								<div class="flex flex-col">
+									<h2 class="text-xl font-semibold">Ihr Guthaben</h2>
+									<p class="text-3xl font-bold mt-1">{ fmt.Sprintf("%.2f €", data.Balance) }</p>
+								</div>
+							</div>
+							<p class="text-emerald-100 mt-auto">Verfügbares Guthaben</p>
+						</div>
+					</div>
+				}
+			</div>
+		</div>
+		<script>
+            document.addEventListener('DOMContentLoaded', () => {
+                // Check if we're on the dashboard page
+                const successNotification = document.getElementById('successNotification');
+                const errorNotification = document.getElementById('errorNotification');
+                
+                // If we're not on the dashboard page, don't initialize anything
+                if (!successNotification || !errorNotification) return;
+
+                // Get URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const success = urlParams.get('success');
+                const message = urlParams.get('message');
+                const error = urlParams.get('error');
+
+                // Show success message if present
+                if (success === 'true' && message) {
+                    showNotification('success', message);
+                }
+
+                // Show error message if present
+                if (error) {
+                    showNotification('error', error);
+                }
+
+                function showNotification(type, message) {
+                    const notification = type === 'success' ? successNotification : errorNotification;
+                    const messageElement = document.getElementById(type + 'Message');
+                    if (!notification || !messageElement) return;
+
+                    messageElement.textContent = message;
+                    notification.style.transform = 'translateX(-100%)';
+
+                    setTimeout(() => {
+                        notification.style.transform = 'translateX(100%)';
+                    }, 3000);
+                }
+            });
+        </script>
+	}
+}

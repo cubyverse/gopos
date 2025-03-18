@@ -1,0 +1,112 @@
+name: Release GoPOS System
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+          - os: linux
+            arch: arm64
+          - os: windows
+            arch: amd64
+          - os: windows
+            arch: arm64
+          - os: darwin
+            arch: amd64
+          - os: darwin
+            arch: arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Install Tailwind CSS CLI
+        run: |
+          curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
+          chmod +x tailwindcss-linux-x64
+          sudo mv tailwindcss-linux-x64 /usr/local/bin/tailwindcss
+
+      - name: Build Tailwind CSS
+        run: |
+          mkdir -p static/css
+          tailwindcss -i ./static/css/input.css -o ./static/css/output.css --minify
+          ls -la static/css/
+
+      - name: Get Version
+        id: get_version
+        run: |
+          VERSION=$(git describe --tags --always || echo "1.0.0")
+          COMMIT_ID=$(git rev-parse HEAD)
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "COMMIT_ID=${COMMIT_ID}" >> $GITHUB_ENV
+    
+      - name: Install dependencies
+        run: |
+          go mod download
+          go install github.com/a-h/templ/cmd/templ@latest
+
+      - name: Generate templ files
+        run: templ generate
+
+      - name: Verify static files
+        run: |
+          ls -la static/css/
+          cat static/css/output.css | head -n 5
+          echo "Total lines in output.css: $(wc -l < static/css/output.css)"
+          ls -R ./components
+      - name: Build
+        run: |
+          GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} \
+          go build -ldflags "-X gopos/components.Version=${VERSION} -X gopos/components.CommitID=${COMMIT_ID}" \
+          -o gopos-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gopos-${{ matrix.os }}-${{ matrix.arch }}
+          path: gopos-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }}
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: GoPOS ${{ env.VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            gopos-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }}
+          body: |            
+            Release of GoPOS Point of Sale System
+            
+            ## Installation
+            
+            Download the appropriate binary for your system:
+            
+            - Windows: `gopos-windows-amd64.exe` or `gopos-windows-arm64.exe`
+            - Linux: `gopos-linux-amd64` or `gopos-linux-arm64`
+            - macOS: `gopos-darwin-amd64` or `gopos-darwin-arm64`
+            
+            See the [README](https://github.com/cubyverse/gopos#installation) for detailed installation instructions.
+            
+            ## Changes
+            
+            Commit: ${{ env.COMMIT_ID }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,95 @@
+package components
+
+import "fmt"
+
+type BalanceTopupData struct {
+	Success   bool
+	Amount    float64
+	Balance   float64
+	Error     string
+	Title     string
+	CSRFToken string
+}
+
+templ BalanceTopup(data BalanceTopupData) {
+	@AuthenticatedBase(PageData{
+		Title:     data.Title,
+		UserName:  "Cashier",
+		Error:     data.Error,
+		Success:   data.Success,
+		CSRFToken: data.CSRFToken,
+	}) {
+		<div class="bg-white rounded-lg shadow-md p-6">
+			<div class="flex justify-between items-center mb-6">
+				<h1 class="text-2xl font-bold text-gray-800">Guthaben aufladen</h1>
+			</div>
+			if data.Success {
+				<div class="text-center py-8">
+					<div class="mb-4">
+						<i class="fas fa-check-circle text-6xl text-green-500"></i>
+					</div>
+					<h2 class="text-2xl font-bold text-gray-800 mb-2">
+						Guthaben erfolgreich aufgeladen!
+					</h2>
+					<p class="text-gray-600 mb-4">
+						{ fmt.Sprintf("%.2f € wurden aufgeladen. Neues Guthaben: %.2f €", data.Amount, data.Balance) }
+					</p>
+					<p class="text-sm text-gray-500">
+						Sie werden in <span id="countdown">3</span> Sekunden weitergeleitet...
+					</p>
+				</div>
+				<script>
+                    let count = 3;
+                    const countdown = document.getElementById('countdown');
+                    const timer = setInterval(() => {
+                        count--;
+                        countdown.textContent = count;
+                        if (count <= 0) {
+                            clearInterval(timer);
+                            window.location.href = '/';
+                        }
+                    }, 1000);
+                </script>
+			} else {
+				<form method="POST" class="space-y-6">
+					<input type="hidden" name="csrf_token" value={ data.CSRFToken }/>
+					<div>
+						<label for="card_number" class="block text-sm font-medium text-gray-700">Kartennummer</label>
+						<input
+							type="text"
+							name="card_number"
+							id="card_number"
+							required
+							class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500"
+						/>
+					</div>
+					<div>
+						<label for="amount" class="block text-sm font-medium text-gray-700">Betrag</label>
+						<div class="mt-1 relative rounded-md shadow-sm">
+							<input
+								type="number"
+								name="amount"
+								id="amount"
+								step="0.01"
+								min="0.01"
+								required
+								class="block w-full pr-10 rounded-md border-gray-300 focus:border-brand-500 focus:ring-brand-500"
+							/>
+							<div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+								<span class="text-gray-500">€</span>
+							</div>
+						</div>
+					</div>
+					<div class="flex justify-end">
+						<button
+							type="submit"
+							class="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 rounded-md"
+						>
+							Aufladen
+						</button>
+					</div>
+				</form>
+			}
+		</div>
+	}
+}

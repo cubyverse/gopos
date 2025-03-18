@@ -1,0 +1,108 @@
+package components
+
+import "fmt"
+
+type TransactionItem struct {
+	ProductName string
+	Quantity    int
+	Price       float64
+}
+
+type Transaction struct {
+	ID          int
+	UserName    string
+	CashierName string
+	Total       float64
+	CreatedAt   string
+	Items       []TransactionItem
+}
+
+type TransactionsData struct {
+	Title        string
+	UserName     string
+	Role         string
+	Balance      float64
+	CSRFToken    string
+	Error        string
+	Message      string
+	Success      bool
+	Transactions []Transaction
+}
+
+templ Transactions(data TransactionsData) {
+	@AuthenticatedBase(PageData{
+		Title:     data.Title,
+		UserName:  data.UserName,
+		Role:      data.Role,
+		Balance:   data.Balance,
+		CSRFToken: data.CSRFToken,
+		Error:     data.Error,
+		Message:   data.Message,
+		Success:   data.Success,
+	}) {
+		<div class="max-w-7xl mx-auto px-4 py-8">
+			<div class="bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-6 border border-brand-100 mb-6">
+				<div class="flex justify-between items-center">
+					<div>
+						<h1 class="text-2xl font-bold text-gray-800 mb-2">Transaktionen</h1>
+						<p class="text-gray-600">Übersicht aller Verkäufe</p>
+					</div>
+				</div>
+			</div>
+			if len(data.Transactions) == 0 {
+				<div class="bg-white/80 backdrop-blur-sm rounded-lg shadow-md p-8 text-center">
+					<div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+						<i class="fas fa-receipt text-2xl text-gray-400"></i>
+					</div>
+					<h3 class="text-lg font-medium text-gray-900 mb-2">Keine Transaktionen gefunden</h3>
+					<p class="text-gray-500">Es wurden noch keine Verkäufe getätigt.</p>
+				</div>
+			} else {
+				<div class="space-y-6">
+					for _, transaction := range data.Transactions {
+						<div class="bg-white/80 backdrop-blur-sm rounded-lg shadow-md p-6">
+							<div class="flex justify-between items-start mb-4">
+								<div>
+									<div class="flex items-center gap-2 text-gray-500 text-sm mb-2">
+										<i class="fas fa-clock"></i>
+										{ transaction.CreatedAt }
+									</div>
+									<div class="flex items-center gap-4">
+										<div class="flex items-center gap-2">
+											<i class="fas fa-user text-brand-500"></i>
+											<span class="font-medium">{ transaction.UserName }</span>
+										</div>
+										<div class="flex items-center gap-2 text-gray-600">
+											<i class="fas fa-cash-register"></i>
+											<span>Kassierer: { transaction.CashierName }</span>
+										</div>
+									</div>
+								</div>
+								<div class="text-right">
+									<div class="text-sm text-gray-500 mb-1">Gesamtbetrag</div>
+									<div class="text-xl font-bold text-gray-900">{ fmt.Sprintf("%.2f €", transaction.Total) }</div>
+								</div>
+							</div>
+							<div class="border-t border-gray-200 pt-4">
+								<h4 class="text-sm font-medium text-gray-500 mb-3">Gekaufte Artikel</h4>
+								<div class="space-y-2">
+									for _, item := range transaction.Items {
+										<div class="flex justify-between items-center text-sm">
+											<div class="flex items-center gap-2">
+												<span class="text-gray-800">{ item.ProductName }</span>
+												<span class="text-gray-500">×{ fmt.Sprint(item.Quantity) }</span>
+											</div>
+											<div class="text-gray-600">
+												{ fmt.Sprintf("%.2f €", item.Price * float64(item.Quantity)) }
+											</div>
+										</div>
+									}
+								</div>
+							</div>
+						</div>
+					}
+				</div>
+			}
+		</div>
+	}
+}

@@ -1,0 +1,101 @@
+package components
+
+import "fmt"
+
+templ UsersGrid(data UsersData) {
+	if len(data.Users) > 0 {
+		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6">
+			for _, user := range data.Users {
+				<div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-all duration-200 overflow-hidden">
+					// Card Header
+					<div class="p-4 border-b border-gray-100">
+						<div class="flex items-center justify-between mb-2">
+							<h3 class="text-lg font-semibold text-gray-900 truncate">{ user.Name }</h3>
+							<span class={ templ.SafeClass(fmt.Sprintf("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium %s", getRoleClasses(user.Role))) }>
+								{ getRoleLabel(user.Role) }
+							</span>
+						</div>
+						<div class="flex items-center text-sm text-gray-500">
+							<i class="fas fa-credit-card mr-2"></i>
+							<span class="truncate">{ user.CardNumber }</span>
+						</div>
+					</div>
+					// Card Body
+					<div class="p-4 space-y-3">
+						<div class="flex items-center text-sm text-gray-600">
+							<i class="fas fa-envelope mr-2 w-5"></i>
+							<span class="truncate">
+								if user.Email != "" {
+									{ user.Email }
+								} else {
+									Keine E-Mail
+								}
+							</span>
+						</div>
+						<div class="flex items-center text-sm">
+							<i class={ templ.SafeClass(fmt.Sprintf("fas fa-%s mr-2 w-5", getBalanceIcon(user.Balance))) }></i>
+							<span class={ templ.SafeClass(getBalanceClasses(user.Balance)) }>
+								{ fmt.Sprintf("%.2f €", user.Balance) }
+							</span>
+						</div>
+						<div class="flex items-center text-sm text-gray-500">
+							<i class="fas fa-clock mr-2 w-5"></i>
+							<span title={ user.CreatedAt.Format("02.01.2006 15:04:05") }>
+								{ user.CreatedAt.Format("02.01.2006 15:04") }
+							</span>
+						</div>
+					</div>
+					// Card Footer
+					<div class="px-4 py-3 bg-gray-50/50 border-t border-gray-100">
+						<div class="flex gap-2 justify-between">
+							<a
+								href={ templ.SafeURL(fmt.Sprintf("/users/edit?id=%d", user.ID)) }
+								class="flex-1 inline-flex items-center justify-center p-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors duration-200"
+								title="Bearbeiten"
+							>
+								<i class="fas fa-edit"></i>
+							</a>
+							<a
+								href={ templ.SafeURL(fmt.Sprintf("/users/topup?id=%d", user.ID)) }
+								class="flex-1 inline-flex items-center justify-center p-2 text-sm font-medium text-green-700 bg-green-100 rounded-lg hover:bg-green-200 transition-colors duration-200"
+								title="Aufladen"
+							>
+								<i class="fas fa-coins"></i>
+							</a>
+							<form method="POST" action="/users/delete" class="flex-1" onsubmit="return confirm('Sind Sie sicher, dass Sie diesen Benutzer löschen möchten?')">
+								<input type="hidden" name="csrf_token" value={ data.CSRFToken }/>
+								<input type="hidden" name="id" value={ fmt.Sprint(user.ID) }/>
+								<button
+									type="submit"
+									class="w-full inline-flex items-center justify-center p-2 text-sm font-medium text-red-700 bg-red-100 rounded-lg hover:bg-red-200 transition-colors duration-200"
+									title="Löschen"
+								>
+									<i class="fas fa-trash-alt"></i>
+								</button>
+							</form>
+						</div>
+					</div>
+				</div>
+			}
+		</div>
+	} else {
+		<div class="text-center py-12 px-4">
+			<div class="bg-brand-50 rounded-lg p-6 max-w-lg mx-auto">
+				<i class="fas fa-users text-4xl text-brand-500 mb-4"></i>
+				<h3 class="text-lg font-medium text-gray-900 mb-2">Keine Benutzer gefunden</h3>
+				<p class="text-sm text-gray-600 mb-6">Passen Sie Ihre Suchkriterien an oder fügen Sie neue Benutzer hinzu.</p>
+				<div class="flex flex-col sm:flex-row gap-3 justify-center">
+					<a
+						href="/users/new"
+						class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+							<path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+						</svg>
+						Benutzer anlegen
+					</a>
+				</div>
+			</div>
+		</div>
+	}
+} 

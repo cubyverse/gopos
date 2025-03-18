@@ -1,0 +1,369 @@
+package ui
+
+// DropdownConfig definiert die Konfiguration für ein Dropdown-Menü
+type DropdownConfig struct {
+	ID         string
+	AlignRight bool
+	Width      string // sm, md, lg, xl, full
+	DarkMode   bool
+	Rounded    string // default, none, full
+	ZIndex     string // 10, 20, 30, 40, 50
+}
+
+// DefaultDropdownConfig gibt die Standardkonfiguration für ein Dropdown zurück
+func DefaultDropdownConfig() DropdownConfig {
+	return DropdownConfig{
+		ID:         "dropdown-" + randomString(8),
+		AlignRight: false,
+		Width:      "md",
+		DarkMode:   false,
+		Rounded:    "default",
+		ZIndex:     "10",
+	}
+}
+
+// randomString erzeugt einen zufälligen String als Dropdown-ID
+func randomString(length int) string {
+	// Einfaches Beispiel, in Produktion würde man eine sicherere Lösung verwenden
+	chars := "abcdefghijklmnopqrstuvwxyz0123456789"
+	result := ""
+	for i := 0; i < length; i++ {
+		result += string(chars[i%len(chars)])
+	}
+	return result
+}
+
+// DropdownContainer rendert einen Container für ein Dropdown-Menü
+templ DropdownContainer(config DropdownConfig) {
+	<div class="relative inline-block text-left" data-dropdown-container>
+		{ children... }
+	</div>
+}
+
+// ButtonConfig für den Dropdown-Button
+type DropdownButtonConfig struct {
+	Label     string
+	Icon      string
+	Variant   string // primary, secondary, success, danger, warning, info
+	Size      string // sm, md, lg
+	FullWidth bool
+}
+
+// DropdownButton rendert einen Button, der ein Dropdown-Menü öffnet
+templ DropdownButton(targetId string, config DropdownButtonConfig) {
+	<button
+		type="button"
+		class={ "inline-flex justify-center items-center " + 
+            (map[bool]string{true: "w-full", false: ""}[config.FullWidth]) + " " +
+            getDropdownButtonClass(config) }
+		id="dropdown-button"
+		data-dropdown-toggle={ targetId }
+		aria-expanded="false"
+		aria-haspopup="true"
+	>
+		<span>{ config.Label }</span>
+		if config.Icon == "" {
+			<!-- Default dropdown icon -->
+			<svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+				<path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+			</svg>
+		} else {
+			<i class={ "ml-2 fas fa-" + config.Icon }></i>
+		}
+	</button>
+}
+
+// Helper-Funktion für Button-Klassen
+func getDropdownButtonClass(config DropdownButtonConfig) string {
+	// Basis-Klassen
+	baseClass := "rounded-md border shadow-sm px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 "
+
+	// Größe
+	sizeClass := "px-4 py-2 text-sm "
+	if config.Size == "sm" {
+		sizeClass = "px-2.5 py-1.5 text-xs "
+	} else if config.Size == "lg" {
+		sizeClass = "px-5 py-2.5 text-base "
+	}
+
+	// Variante
+	variantClass := "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-brand-500 "
+	if config.Variant == "primary" {
+		variantClass = "bg-brand-600 border-brand-600 text-white hover:bg-brand-700 focus:ring-brand-500 "
+	} else if config.Variant == "danger" {
+		variantClass = "bg-red-600 border-red-600 text-white hover:bg-red-700 focus:ring-red-500 "
+	}
+
+	return baseClass + sizeClass + variantClass
+}
+
+// DropdownMenu rendert das eigentliche Dropdown-Menü
+templ DropdownMenu(config DropdownConfig) {
+	<div
+		id={ config.ID }
+		class={ "absolute mt-2 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 divide-y divide-gray-100 focus:outline-none hidden z-" + config.ZIndex + " " + 
+            getDropdownAlignmentClass(config.AlignRight) + " " +
+            getDropdownWidthClass(config.Width) + " " +
+            getDropdownThemeClass(config.DarkMode) }
+		role="menu"
+		aria-orientation="vertical"
+		aria-labelledby="dropdown-button"
+		tabindex="-1"
+	>
+		{ children... }
+	</div>
+}
+
+// DropdownSection rendert einen Abschnitt innerhalb eines Dropdown-Menüs
+templ DropdownSection(darkMode bool) {
+	<div class={ "py-1 " + getDividerClass(darkMode) } role="none">
+		{ children... }
+	</div>
+}
+
+// DropdownItemConfig definiert die Konfiguration für ein Dropdown-Item
+type DropdownItemConfig struct {
+	Label     string
+	Icon      string
+	Variant   string // default, danger, success, warning, info
+	Disabled  bool
+	Separated bool
+}
+
+// DropdownItem rendert einen Button in einem Dropdown
+templ DropdownItem(config DropdownItemConfig, onClick string, darkMode bool) {
+	if config.Separated && onClick != "" {
+		<div class={ getDividerClass(darkMode) }>
+			<button
+				type="button"
+				class={ getDropdownItemClass(config, darkMode) }
+				role="menuitem"
+				tabindex="-1"
+				@click={ onClick }
+				if config.Disabled {
+					disabled
+				}
+			>
+				if config.Icon != "" {
+					<i class={ "fas fa-" + config.Icon + " mr-3 " + getDropdownItemIconClass(config.Variant, darkMode) }></i>
+				}
+				<span>{ config.Label }</span>
+			</button>
+		</div>
+	} else if onClick != "" {
+		<button
+			type="button"
+			class={ getDropdownItemClass(config, darkMode) }
+			role="menuitem"
+			tabindex="-1"
+			@click={ onClick }
+			if config.Disabled {
+				disabled
+			}
+		>
+			if config.Icon != "" {
+				<i class={ "fas fa-" + config.Icon + " mr-3 " + getDropdownItemIconClass(config.Variant, darkMode) }></i>
+			}
+			<span>{ config.Label }</span>
+		</button>
+	} else {
+		<div
+			class={ getDropdownItemClass(config, darkMode) }
+			role="menuitem"
+			tabindex="-1"
+		>
+			if config.Icon != "" {
+				<i class={ "fas fa-" + config.Icon + " mr-3 " + getDropdownItemIconClass(config.Variant, darkMode) }></i>
+			}
+			<span>{ config.Label }</span>
+		</div>
+	}
+}
+
+// DropdownLink rendert einen Link in einem Dropdown
+templ DropdownLink(config DropdownItemConfig, href string, darkMode bool) {
+	if config.Separated {
+		<div class={ getDividerClass(darkMode) }>
+			<a
+				href={ templ.SafeURL(href) }
+				class={ getDropdownItemClass(config, darkMode) }
+				role="menuitem"
+				tabindex="-1"
+			>
+				if config.Icon != "" {
+					<i class={ "fas fa-" + config.Icon + " mr-3 " + getDropdownItemIconClass(config.Variant, darkMode) }></i>
+				}
+				<span>{ config.Label }</span>
+			</a>
+		</div>
+	} else {
+		<a
+			href={ templ.SafeURL(href) }
+			class={ getDropdownItemClass(config, darkMode) }
+			role="menuitem"
+			tabindex="-1"
+		>
+			if config.Icon != "" {
+				<i class={ "fas fa-" + config.Icon + " mr-3 " + getDropdownItemIconClass(config.Variant, darkMode) }></i>
+			}
+			<span>{ config.Label }</span>
+		</a>
+	}
+}
+
+// DropdownFormButton rendert einen Submit-Button innerhalb eines Formulars im Dropdown
+templ DropdownFormButton(config DropdownItemConfig, name string, value string, action string, darkMode bool) {
+	<form method="POST" action={ templ.SafeURL(action) } class="w-full">
+		<button
+			type="submit"
+			name={ name }
+			value={ value }
+			class={ getDropdownItemClass(config, darkMode) }
+			role="menuitem"
+			tabindex="-1"
+			if config.Disabled {
+				disabled
+			}
+		>
+			if config.Icon != "" {
+				<i class={ "fas fa-" + config.Icon + " mr-3 " + getDropdownItemIconClass(config.Variant, darkMode) }></i>
+			}
+			<span>{ config.Label }</span>
+		</button>
+	</form>
+}
+
+// Hilfsfunktionen für das Styling
+
+// Alignment des Dropdown-Menüs
+func getDropdownAlignmentClass(alignRight bool) string {
+	if alignRight {
+		return "right-0 origin-top-right"
+	}
+	return "left-0 origin-top-left"
+}
+
+// Breite des Dropdown-Menüs
+func getDropdownWidthClass(width string) string {
+	switch width {
+	case "sm":
+		return "w-32"
+	case "md":
+		return "w-48"
+	case "lg":
+		return "w-64"
+	case "xl":
+		return "w-80"
+	case "full":
+		return "w-full"
+	default:
+		return "w-56"
+	}
+}
+
+// Theme des Dropdown-Menüs (hell/dunkel)
+func getDropdownThemeClass(darkMode bool) string {
+	if darkMode {
+		return "bg-gray-800 text-white"
+	}
+	return "bg-white text-gray-900"
+}
+
+// Styling für Separator-Linien
+func getDividerClass(darkMode bool) string {
+	if darkMode {
+		return "border-gray-700"
+	}
+	return "border-gray-200"
+}
+
+// Styling für Dropdown-Items
+func getDropdownItemClass(config DropdownItemConfig, darkMode bool) string {
+	baseClass := "flex items-center w-full text-left px-4 py-2 text-sm "
+
+	if config.Disabled {
+		if darkMode {
+			return baseClass + "text-gray-500 cursor-not-allowed"
+		} else {
+			return baseClass + "text-gray-400 cursor-not-allowed"
+		}
+	}
+
+	switch config.Variant {
+	case "danger":
+		if darkMode {
+			return baseClass + "text-red-400 hover:bg-gray-700"
+		}
+		return baseClass + "text-red-700 hover:bg-red-100 hover:text-red-900"
+	case "success":
+		if darkMode {
+			return baseClass + "text-green-400 hover:bg-gray-700"
+		}
+		return baseClass + "text-green-700 hover:bg-green-100 hover:text-green-900"
+	case "warning":
+		if darkMode {
+			return baseClass + "text-yellow-400 hover:bg-gray-700"
+		}
+		return baseClass + "text-yellow-700 hover:bg-yellow-100 hover:text-yellow-900"
+	case "info":
+		if darkMode {
+			return baseClass + "text-blue-400 hover:bg-gray-700"
+		}
+		return baseClass + "text-blue-700 hover:bg-blue-100 hover:text-blue-900"
+	default:
+		if darkMode {
+			return baseClass + "text-gray-300 hover:bg-gray-700 hover:text-white"
+		}
+		return baseClass + "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+	}
+}
+
+// Styling für Icons in Dropdown-Items
+func getDropdownItemIconClass(variant string, darkMode bool) string {
+	if darkMode {
+		switch variant {
+		case "danger":
+			return "text-red-400"
+		case "success":
+			return "text-green-400"
+		case "warning":
+			return "text-yellow-400"
+		case "info":
+			return "text-blue-400"
+		default:
+			return "text-gray-400"
+		}
+	} else {
+		switch variant {
+		case "danger":
+			return "text-red-600"
+		case "success":
+			return "text-green-600"
+		case "warning":
+			return "text-yellow-600"
+		case "info":
+			return "text-blue-600"
+		default:
+			return "text-gray-600"
+		}
+	}
+}
+
+// Einfache Dropdown-Implementation
+templ SimpleDropdown(label string, icon string, alignRight bool, width string) {
+	@DropdownContainer(DefaultDropdownConfig()) {
+		@DropdownButton("simple-dropdown", DropdownButtonConfig{
+			Label: label,
+			Icon:  icon,
+		})
+		@DropdownMenu(DropdownConfig{
+			ID:         "simple-dropdown",
+			AlignRight: alignRight,
+			Width:      width,
+		}) {
+			<div class="py-1" role="none">
+				{ children... }
+			</div>
+		}
+	}
+}

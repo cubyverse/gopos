@@ -1,0 +1,231 @@
+package components
+
+import "fmt"
+
+type UserFormData struct {
+	Title     string
+	User      *User
+	Error     string
+	CSRFToken string
+}
+
+templ UserForm(data UserFormData) {
+	@AuthenticatedBase(PageData{
+		Title:     data.Title,
+		UserName:  "Admin",
+		Message:   data.Error,
+		CSRFToken: data.CSRFToken,
+	}) {
+		<div class="max-w-2xl mx-auto">
+			<div class="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-brand-100 overflow-hidden">
+				// Header
+				<div class="px-6 py-4 bg-brand-50 border-b border-brand-100">
+					<h2 class="text-2xl font-bold text-gray-800">{ data.Title }</h2>
+					<p class="text-sm text-gray-600 mt-1">
+						if data.User != nil && data.User.ID != 0 {
+							Benutzer bearbeiten
+						} else {
+							Neuen Benutzer anlegen
+						}
+					</p>
+				</div>
+				// Error message if present
+				if data.Error != "" {
+					<div class="p-4 bg-red-50 border-b border-red-100">
+						<div class="flex items-center text-red-700">
+							<i class="fas fa-exclamation-circle mr-2"></i>
+							<span>{ data.Error }</span>
+						</div>
+					</div>
+				}
+				<form method="POST" class="p-6 space-y-6" id="userForm">
+					<input type="hidden" name="csrf_token" value={ data.CSRFToken }/>
+					// Card Number Field
+					<div class="space-y-2">
+						<label for="card_number" class="block text-lg font-medium text-gray-700">
+							<i class="fas fa-credit-card mr-2 text-brand-500"></i>
+							Kartennummer
+						</label>
+						<div class="relative">
+							<input
+								type="text"
+								id="card_number"
+								name="card_number"
+								required
+								autocomplete="off"
+								pattern="[0-9]*"
+								inputmode="numeric"
+								class="block w-full px-4 py-3 text-xl rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+								placeholder="Kartennummer scannen oder eingeben"
+								onkeydown="handleCardNumberKeydown(event)"
+								if data.User != nil {
+									value={ data.User.CardNumber }
+								}
+								autofocus
+							/>
+							<div class="absolute inset-y-0 right-0 flex items-center pr-3">
+								<i class="fas fa-badge-check text-xl text-gray-400"></i>
+							</div>
+						</div>
+						<p class="text-sm text-gray-500">Scannen Sie die Karte oder geben Sie die Nummer manuell ein</p>
+					</div>
+					// Name Field
+					<div class="space-y-2">
+						<label for="name" class="block text-lg font-medium text-gray-700">
+							<i class="fas fa-user mr-2 text-brand-500"></i>
+							Name
+						</label>
+						<input
+							type="text"
+							id="name"
+							name="name"
+							required
+							class="block w-full px-4 py-3 text-xl rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+							placeholder="Vor- und Nachname"
+							if data.User != nil {
+								value={ data.User.Name }
+							}
+						/>
+					</div>
+					// Email Field
+					<div class="space-y-2">
+						<label for="email" class="block text-lg font-medium text-gray-700">
+							<i class="fas fa-envelope mr-2 text-brand-500"></i>
+							E-Mail (optional)
+						</label>
+						<input
+							type="email"
+							id="email"
+							name="email"
+							class="block w-full px-4 py-3 text-xl rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+							placeholder="email@beispiel.de"
+							if data.User != nil {
+								value={ data.User.Email }
+							}
+						/>
+						<p class="text-sm text-gray-500">Optional: Geben Sie eine E-Mail-Adresse für Benachrichtigungen an</p>
+					</div>
+					// Role Selection
+					<div class="space-y-2">
+						<label class="block text-lg font-medium text-gray-700">
+							<i class="fas fa-user-tag mr-2 text-brand-500"></i>
+							Rolle
+						</label>
+						<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+							<label class="relative flex cursor-pointer">
+								<input
+									type="radio"
+									name="role"
+									value="customer"
+									class="peer sr-only"
+									if data.User == nil || data.User.Role == "customer" {
+										checked
+									}
+								/>
+								<div class="w-full p-4 bg-white border border-gray-300 rounded-lg peer-checked:border-brand-500 peer-checked:ring-2 peer-checked:ring-brand-500 hover:border-brand-300">
+									<div class="flex items-center justify-center">
+										<i class="fas fa-user text-2xl mb-2 text-brand-500"></i>
+									</div>
+									<div class="text-center font-medium">Kunde</div>
+								</div>
+							</label>
+							<label class="relative flex cursor-pointer">
+								<input
+									type="radio"
+									name="role"
+									value="cashier"
+									class="peer sr-only"
+									if data.User != nil && data.User.Role == "cashier" {
+										checked
+									}
+								/>
+								<div class="w-full p-4 bg-white border border-gray-300 rounded-lg peer-checked:border-brand-500 peer-checked:ring-2 peer-checked:ring-brand-500 hover:border-brand-300">
+									<div class="flex items-center justify-center">
+										<i class="fas fa-cash-register text-2xl mb-2 text-brand-500"></i>
+									</div>
+									<div class="text-center font-medium">Kassierer</div>
+								</div>
+							</label>
+							<label class="relative flex cursor-pointer">
+								<input
+									type="radio"
+									name="role"
+									value="admin"
+									class="peer sr-only"
+									if data.User != nil && data.User.Role == "admin" {
+										checked
+									}
+								/>
+								<div class="w-full p-4 bg-white border border-gray-300 rounded-lg peer-checked:border-brand-500 peer-checked:ring-2 peer-checked:ring-brand-500 hover:border-brand-300">
+									<div class="flex items-center justify-center">
+										<i class="fas fa-user-shield text-2xl mb-2 text-brand-500"></i>
+									</div>
+									<div class="text-center font-medium">Administrator</div>
+								</div>
+							</label>
+						</div>
+					</div>
+					if data.User != nil && data.User.ID != 0 {
+						// Balance Field (only for editing)
+						<div class="space-y-2">
+							<label for="balance" class="block text-lg font-medium text-gray-700">
+								<i class="fas fa-coins mr-2 text-brand-500"></i>
+								Aktuelles Guthaben
+							</label>
+							<div class="relative">
+								<input
+									type="number"
+									id="balance"
+									name="balance"
+									step="0.01"
+									class="block w-full px-4 py-3 text-xl rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+									value={ fmt.Sprintf("%.2f", data.User.Balance) }
+								/>
+								<div class="absolute inset-y-0 right-0 flex items-center pr-3">
+									<span class="text-gray-500">€</span>
+								</div>
+							</div>
+							<p class="text-sm text-gray-500">Aktueller Kontostand des Benutzers</p>
+						</div>
+					}
+					// Action Buttons
+					<div class="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200">
+						<button
+							type="submit"
+							class="flex-1 inline-flex justify-center items-center px-6 py-4 text-lg font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 shadow-sm hover:shadow-md"
+						>
+							<i class="fas fa-save mr-2"></i>
+							if data.User != nil && data.User.ID != 0 {
+								Änderungen speichern
+							} else {
+								Benutzer anlegen
+							}
+						</button>
+						<a
+							href="/users"
+							class="flex-1 inline-flex justify-center items-center px-6 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
+						>
+							<i class="fas fa-times mr-2"></i>
+							Abbrechen
+						</a>
+					</div>
+				</form>
+			</div>
+		</div>
+		<script>
+            function handleCardNumberKeydown(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    document.getElementById('name').focus();
+                }
+            }
+
+            // Automatically select card number when focused
+            document.getElementById('card_number').addEventListener('focus', function() {
+                if (this.value) {
+                    this.select();
+                }
+            });
+        </script>
+	}
+}
