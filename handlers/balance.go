@@ -166,8 +166,8 @@ func HandleBalanceTopup(db *sql.DB) http.HandlerFunc {
 			if err == nil && userEmail != "" {
 				// Send email notification
 				go func() {
-					if err := services.SendTransactionEmail(userEmail, userName, amount, newBalance, []services.Product{}); err != nil {
-						log.Printf("[BALANCE] Error sending transaction email: %v", err)
+					if err := services.SendTopupEmail(userEmail, userName, amount, newBalance); err != nil {
+						log.Printf("[BALANCE] Error sending top-up email: %v", err)
 					} else {
 						log.Printf("[BALANCE] Email notification sent successfully")
 					}

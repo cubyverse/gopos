@@ -194,8 +194,11 @@ func HandleTransaction(db *sql.DB) http.HandlerFunc {
 
 		// Send email notification if user has email
 		if userEmail != "" {
+			// Use the transaction-specific email template
 			if err := services.SendTransactionEmail(userEmail, userName, amount, newBalance, []services.Product{}); err != nil {
 				log.Printf("[TRANSACTIONS] Error sending email notification: %v", err)
+			} else {
+				log.Printf("[TRANSACTIONS] Email notification sent successfully")
 			}
 		}
 

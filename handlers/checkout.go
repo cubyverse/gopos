@@ -285,6 +285,8 @@ func HandleCompleteCheckout(db *sql.DB) http.HandlerFunc {
 		if user.Email.Valid {
 			if err := services.SendTransactionEmail(user.Email.String, user.Name, -request.Total, newBalance, emailProducts); err != nil {
 				log.Printf("[CHECKOUT] Error sending email notification: %v", err)
+			} else {
+				log.Printf("[CHECKOUT] Transaction email notification sent successfully")
 			}
 		}
 

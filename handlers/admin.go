@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gopos/components"
 	"gopos/services"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -166,6 +167,33 @@ func HandleNewUser(db *sql.DB) http.HandlerFunc {
 				return
 			}
 
+			// Send email notification if user has an email
+			if email != "" {
+				// Build account details
+				accountDetails := map[string]map[string]string{
+					"Name": {
+						"new": name,
+					},
+					"Kartennummer": {
+						"new": cardNumber,
+					},
+					"Rolle": {
+						"new": role,
+					},
+					"E-Mail": {
+						"new": email,
+					},
+				}
+
+				go func() {
+					if err := services.SendUserUpdatedEmail(email, name, true, accountDetails); err != nil {
+						log.Printf("[ADMIN] Error sending welcome email: %v", err)
+					} else {
+						log.Printf("[ADMIN] Welcome email sent successfully to %s", email)
+					}
+				}()
+			}
+
 			http.Redirect(w, r, fmt.Sprintf("/users?message=Benutzer %s erfolgreich erstellt", name), http.StatusSeeOther)
 		}
 	}
@@ -248,6 +276,44 @@ func HandleEditUser(db *sql.DB) http.HandlerFunc {
 				return
 			}
 
+			// Get previous user data to detect changes - BEFORE we update the database
+			oldUser, err := services.GetUserByID(db, userID)
+			changes := make(map[string]map[string]string)
+
+			if err == nil && oldUser != nil {
+				// Look for changes in the user data
+				if oldUser.Name != name {
+					changes["Name"] = map[string]string{
+						"old": oldUser.Name,
+						"new": name,
+					}
+				}
+				if oldUser.CardNumber != cardNumber {
+					changes["Kartennummer"] = map[string]string{
+						"old": oldUser.CardNumber,
+						"new": cardNumber,
+					}
+				}
+				if oldUser.Role != role {
+					changes["Rolle"] = map[string]string{
+						"old": oldUser.Role,
+						"new": role,
+					}
+				}
+				if oldUser.Email != email {
+					changes["E-Mail"] = map[string]string{
+						"old": oldUser.Email,
+						"new": email,
+					}
+				}
+				if oldUser.Balance != balance {
+					changes["Guthaben"] = map[string]string{
+						"old": fmt.Sprintf("%.2f €", oldUser.Balance),
+						"new": fmt.Sprintf("%.2f €", balance),
+					}
+				}
+			}
+
 			// Start transaction
 			tx, err := db.Begin()
 			if err != nil {
@@ -313,6 +379,17 @@ func HandleEditUser(db *sql.DB) http.HandlerFunc {
 			if err := tx.Commit(); err != nil {
 				http.Error(w, "Error committing transaction", http.StatusInternalServerError)
 				return
+			}
+
+			// Send email notification if user has an email
+			if email != "" && len(changes) > 0 {
+				go func() {
+					if err := services.SendUserUpdatedEmail(email, name, false, changes); err != nil {
+						log.Printf("[ADMIN] Error sending user update email: %v", err)
+					} else {
+						log.Printf("[ADMIN] User update email sent successfully to %s", email)
+					}
+				}()
 			}
 
 			http.Redirect(w, r, fmt.Sprintf("/users?message=Benutzer %s erfolgreich aktualisiert", name), http.StatusSeeOther)
@@ -510,6 +587,23 @@ func HandleTopupUser(db *sql.DB) http.HandlerFunc {
 			if err := tx.Commit(); err != nil {
 				http.Redirect(w, r, "/dashboard?error=Fehler beim Abschließen der Transaktion", http.StatusSeeOther)
 				return
+			}
+
+			// Get user's updated balance
+			var updatedBalance float64
+			if err := db.QueryRow("SELECT balance FROM users WHERE id = ?", selectedUser.ID).Scan(&updatedBalance); err != nil {
+				log.Printf("[ADMIN] Error getting updated balance: %v", err)
+			}
+
+			// Send email notification if user has an email
+			if selectedUser.Email != "" {
+				go func() {
+					if err := services.SendTopupEmail(selectedUser.Email, selectedUser.Name, amount, updatedBalance); err != nil {
+						log.Printf("[ADMIN] Error sending top-up email: %v", err)
+					} else {
+						log.Printf("[ADMIN] Top-up email notification sent successfully to %s", selectedUser.Email)
+					}
+				}()
 			}
 
 			// Redirect with success message
