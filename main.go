@@ -174,6 +174,8 @@ func main() {
 		"/products/new":    withDB(handlers.RequireAuth(handlers.RequireRole([]string{"admin"}, handlers.HandleNewProduct(db)))),
 		"/products/edit":   withDB(handlers.RequireAuth(handlers.RequireRole([]string{"admin"}, handlers.HandleEditProduct(db)))),
 		"/products/delete": withDB(handlers.RequireAuth(handlers.RequireRole([]string{"admin"}, handlers.HandleDeleteProduct(db)))),
+		"/products/search": withDB(handlers.RequireAuth(handlers.RequireRole([]string{"admin"}, handlers.HandleProductSearch(db)))),
+		"/products/filter": withDB(handlers.RequireAuth(handlers.RequireRole([]string{"admin"}, handlers.HandleProductFilter(db)))),
 
 		// Cashier routes
 		"/checkout":      withDB(handlers.RequireAuth(handlers.RequireRole([]string{"admin", "cashier"}, handlers.HandleCheckout(db)))),

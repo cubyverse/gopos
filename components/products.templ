@@ -25,6 +25,93 @@ type ProductsData struct {
 	Products  []Product
 }
 
+templ ProductsTable(data ProductsData) {
+	if len(data.Products) > 0 {
+		<table class="min-w-full divide-y divide-gray-200">
+			<thead>
+				<tr>
+					<th class="px-6 py-3 bg-gray-50/50 backdrop-blur-sm text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">Name</th>
+					<th class="px-6 py-3 bg-gray-50/50 backdrop-blur-sm text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barcode</th>
+					<th class="px-6 py-3 bg-gray-50/50 backdrop-blur-sm text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preis</th>
+					<th class="px-6 py-3 bg-gray-50/50 backdrop-blur-sm text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Erstellt am</th>
+					<th class="px-6 py-3 bg-gray-50/50 backdrop-blur-sm text-right text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">Aktionen</th>
+				</tr>
+			</thead>
+			<tbody class="bg-white divide-y divide-gray-200">
+				for _, product := range data.Products {
+					<tr class="hover:bg-gray-50/50 backdrop-blur-sm transition-colors duration-150">
+						<td class="px-6 py-4 whitespace-nowrap">
+							<div class="flex items-center">
+								<div class="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700">
+									<i class="fas fa-box text-sm"></i>
+								</div>
+								<div class="ml-3">
+									<div class="text-sm font-medium text-gray-900">{ product.Name }</div>
+								</div>
+							</div>
+						</td>
+						<td class="px-6 py-4 whitespace-nowrap">
+							<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+								<i class="fas fa-barcode mr-1 text-gray-400"></i>
+								{ product.Barcode }
+							</span>
+						</td>
+						<td class="px-6 py-4 whitespace-nowrap">
+							<span class="text-sm text-gray-900">
+								{ fmt.Sprintf("%.2f €", product.Price) }
+							</span>
+						</td>
+						<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+							<span title={ product.CreatedAt.Format("02.01.2006 15:04:05") }>
+								{ product.CreatedAt.Format("02.01.2006 15:04") }
+							</span>
+						</td>
+						<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+							<div class="flex justify-end space-x-3">
+								<a
+									href={ templ.SafeURL(fmt.Sprintf("/products/edit?id=%d", product.ID)) }
+									class="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors duration-200"
+								>
+									<i class="fas fa-edit mr-2"></i>
+									Bearbeiten
+								</a>
+								<form method="POST" action="/products/delete" class="inline" onsubmit="return confirm('Sind Sie sicher, dass Sie dieses Produkt löschen möchten?')">
+									<input type="hidden" name="csrf_token" value={ data.CSRFToken }/>
+									<input type="hidden" name="id" value={ fmt.Sprint(product.ID) }/>
+									<button
+										type="submit"
+										class="inline-flex items-center px-3 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-md hover:bg-red-100 transition-colors duration-200"
+									>
+										<i class="fas fa-trash-alt mr-2"></i>
+										Löschen
+									</button>
+								</form>
+							</div>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	} else {
+		<div class="text-center py-12 px-4">
+			<div class="bg-brand-50 rounded-lg p-6 max-w-lg mx-auto">
+				<i class="fas fa-box text-4xl text-brand-500 mb-4"></i>
+				<h3 class="text-lg font-medium text-gray-900 mb-2">Keine Produkte gefunden</h3>
+				<p class="text-sm text-gray-600 mb-6">Fügen Sie neue Produkte hinzu, um mit dem System zu arbeiten.</p>
+				<div class="flex flex-col sm:flex-row gap-3 justify-center">
+					<a
+						href="/products/new"
+						class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors duration-200"
+					>
+						<i class="fas fa-plus mr-2"></i>
+						Produkt anlegen
+					</a>
+				</div>
+			</div>
+		</div>
+	}
+}
+
 templ Products(data ProductsData) {
 	@AuthenticatedBase(PageData{
 		Title:     data.Title,
@@ -76,112 +163,45 @@ templ Products(data ProductsData) {
 							</div>
 						</div>
 						// Sort Options
-						<div class="relative group">
-							<select
-								class="appearance-none pl-12 pr-10 py-3 text-lg bg-white/50 rounded-lg border border-gray-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500 cursor-pointer w-full sm:w-48"
-								hx-get="/products/filter"
-								hx-trigger="change"
+						<div class="flex space-x-2">
+							<button
+								hx-get="/products/filter?sort=created"
 								hx-target="#products-table"
-								name="sort"
+								hx-swap="innerHTML"
+								hx-indicator="#loading-indicator"
+								class="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 bg-white/50 text-gray-700 hover:bg-gray-100 transition-colors"
 							>
-								<option value="created">Neueste zuerst</option>
-								<option value="name">Nach Name</option>
-								<option value="price">Nach Preis</option>
-							</select>
-							<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-								<i class="fas fa-sort text-lg text-gray-400"></i>
-							</div>
-							<div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-								<i class="fas fa-chevron-down text-gray-400 group-hover:text-gray-600 transition-colors"></i>
+								<i class="fas fa-calendar-alt mr-2"></i>
+								Neueste
+							</button>
+							<button
+								hx-get="/products/filter?sort=name"
+								hx-target="#products-table"
+								hx-swap="innerHTML"
+								hx-indicator="#loading-indicator"
+								class="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 bg-white/50 text-gray-700 hover:bg-gray-100 transition-colors"
+							>
+								<i class="fas fa-font mr-2"></i>
+								Name
+							</button>
+							<button
+								hx-get="/products/filter?sort=price"
+								hx-target="#products-table"
+								hx-swap="innerHTML"
+								hx-indicator="#loading-indicator"
+								class="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 bg-white/50 text-gray-700 hover:bg-gray-100 transition-colors"
+							>
+								<i class="fas fa-euro-sign mr-2"></i>
+								Preis
+							</button>
+							<div id="loading-indicator" class="htmx-indicator">
+								<i class="fas fa-circle-notch fa-spin text-gray-400"></i>
 							</div>
 						</div>
 					</div>
 				</div>
 				<div id="products-table" class="overflow-x-auto">
-					if len(data.Products) > 0 {
-						<table class="min-w-full divide-y divide-gray-200">
-							<thead>
-								<tr>
-									<th class="px-6 py-3 bg-gray-50/50 backdrop-blur-sm text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">Name</th>
-									<th class="px-6 py-3 bg-gray-50/50 backdrop-blur-sm text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barcode</th>
-									<th class="px-6 py-3 bg-gray-50/50 backdrop-blur-sm text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preis</th>
-									<th class="px-6 py-3 bg-gray-50/50 backdrop-blur-sm text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Erstellt am</th>
-									<th class="px-6 py-3 bg-gray-50/50 backdrop-blur-sm text-right text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">Aktionen</th>
-								</tr>
-							</thead>
-							<tbody class="bg-white divide-y divide-gray-200">
-								for _, product := range data.Products {
-									<tr class="hover:bg-gray-50/50 backdrop-blur-sm transition-colors duration-150">
-										<td class="px-6 py-4 whitespace-nowrap">
-											<div class="flex items-center">
-												<div class="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700">
-													<i class="fas fa-box text-sm"></i>
-												</div>
-												<div class="ml-3">
-													<div class="text-sm font-medium text-gray-900">{ product.Name }</div>
-												</div>
-											</div>
-										</td>
-										<td class="px-6 py-4 whitespace-nowrap">
-											<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-												<i class="fas fa-barcode mr-1 text-gray-400"></i>
-												{ product.Barcode }
-											</span>
-										</td>
-										<td class="px-6 py-4 whitespace-nowrap">
-											<span class="text-sm text-gray-900">
-												{ fmt.Sprintf("%.2f €", product.Price) }
-											</span>
-										</td>
-										<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-											<span title={ product.CreatedAt.Format("02.01.2006 15:04:05") }>
-												{ product.CreatedAt.Format("02.01.2006 15:04") }
-											</span>
-										</td>
-										<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-											<div class="flex justify-end space-x-3">
-												<a
-													href={ templ.SafeURL(fmt.Sprintf("/products/edit?id=%d", product.ID)) }
-													class="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors duration-200"
-												>
-													<i class="fas fa-edit mr-2"></i>
-													Bearbeiten
-												</a>
-												<form method="POST" action="/products/delete" class="inline" onsubmit="return confirm('Sind Sie sicher, dass Sie dieses Produkt löschen möchten?')">
-													<input type="hidden" name="csrf_token" value={ data.CSRFToken }/>
-													<input type="hidden" name="id" value={ fmt.Sprint(product.ID) }/>
-													<button
-														type="submit"
-														class="inline-flex items-center px-3 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-md hover:bg-red-100 transition-colors duration-200"
-													>
-														<i class="fas fa-trash-alt mr-2"></i>
-														Löschen
-													</button>
-												</form>
-											</div>
-										</td>
-									</tr>
-								}
-							</tbody>
-						</table>
-					} else {
-						<div class="text-center py-12 px-4">
-							<div class="bg-brand-50 rounded-lg p-6 max-w-lg mx-auto">
-								<i class="fas fa-box text-4xl text-brand-500 mb-4"></i>
-								<h3 class="text-lg font-medium text-gray-900 mb-2">Keine Produkte gefunden</h3>
-								<p class="text-sm text-gray-600 mb-6">Fügen Sie neue Produkte hinzu, um mit dem System zu arbeiten.</p>
-								<div class="flex flex-col sm:flex-row gap-3 justify-center">
-									<a
-										href="/products/new"
-										class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors duration-200"
-									>
-										<i class="fas fa-plus mr-2"></i>
-										Produkt anlegen
-									</a>
-								</div>
-							</div>
-						</div>
-					}
+					@ProductsTable(data)
 				</div>
 			</div>
 			// Help Section

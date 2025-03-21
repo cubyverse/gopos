@@ -182,6 +182,76 @@ templ Checkout(data CheckoutData) {
                     updateCart();
                 };
 
+                window.editQuantity = function(index, currentQuantity) {
+                    // Replace the span with an input field
+                    const quantitySpan = event.currentTarget;
+                    const spanParent = quantitySpan.parentNode;
+                    
+                    // Create the input element
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.value = currentQuantity;
+                    input.min = 1;
+                    input.step = 1;  // Nur ganze Zahlen erlauben
+                    input.pattern = "[0-9]*";  // Nur Ziffern erlauben
+                    input.inputMode = "numeric";  // Numerische Tastatur auf Mobilgeräten
+                    input.className = 'w-16 px-2 py-1 text-lg border border-brand-500 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-brand-500';
+                    
+                    // Replace the span with the input
+                    spanParent.replaceChild(input, quantitySpan);
+                    
+                    // Focus and select the input
+                    input.focus();
+                    input.select();
+                    
+                    // Function to update and restore the span
+                    const updateAndRestore = () => {
+                        // Stelle sicher, dass die Eingabe eine ganze Zahl ist
+                        input.value = input.value.replace(/,/g, '').replace(/\./g, '');
+                        const newQuantity = parseInt(input.value, 10);
+                        
+                        if (isNaN(newQuantity) || newQuantity <= 0) {
+                            alert("Bitte geben Sie eine gültige ganze Zahl größer als 0 ein.");
+                            input.focus();
+                            input.select();
+                            return;
+                        }
+                        
+                        if (newQuantity > 100) {
+                            if (!confirm(`Sind Sie sicher, dass Sie ${newQuantity} Stück hinzufügen möchten?`)) {
+                                input.focus();
+                                input.select();
+                                return;
+                            }
+                        }
+                        
+                        // Update quantity and restore the span
+                        updateQuantity(index, newQuantity);
+                        
+                        // Remove the input and event listeners
+                        input.removeEventListener('blur', updateAndRestore);
+                        input.removeEventListener('keydown', handleKeyDown);
+                        
+                        // The span will be re-created by updateCart()
+                    };
+                    
+                    // Handle key events
+                    const handleKeyDown = (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            updateAndRestore();
+                        } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            // Just restore the span without updating
+                            updateCart();  // This will re-render the cart and restore the span
+                        }
+                    };
+                    
+                    // Add event listeners
+                    input.addEventListener('blur', updateAndRestore);
+                    input.addEventListener('keydown', handleKeyDown);
+                };
+
                 window.clearCustomer = function() {
                     customer = null;
                     cardInput.value = '';
@@ -232,7 +302,12 @@ templ Checkout(data CheckoutData) {
                                                 class="p-3 text-lg bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors min-w-[48px]">
                                             <i class="fas fa-minus"></i>
                                         </button>
-                                        <span class="text-lg font-medium min-w-[3ch] text-center">${item.quantity}</span>
+                                        <span class="text-lg font-medium min-w-[3ch] text-center cursor-pointer hover:bg-gray-100 py-2 px-3 rounded-lg flex items-center justify-center bg-white border border-gray-200" 
+                                              onclick="editQuantity(${index}, ${item.quantity})" 
+                                              title="Klicken, um Anzahl zu ändern">
+                                            <span>${item.quantity}</span>
+                                            <i class="fas fa-edit text-xs text-gray-400 ml-1"></i>
+                                        </span>
                                         <button onclick="updateQuantity(${index}, ${item.quantity + 1})"
                                                 class="p-3 text-lg bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors min-w-[48px]">
                                             <i class="fas fa-plus"></i>

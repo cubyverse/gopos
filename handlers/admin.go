@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -246,6 +247,9 @@ func HandleEditUser(db *sql.DB) http.HandlerFunc {
 			role := r.FormValue("role")
 			email := r.FormValue("email")
 			balanceStr := r.FormValue("balance")
+
+			// Konvertiere Komma zu Punkt für deutsches Zahlenformat
+			balanceStr = strings.Replace(balanceStr, ",", ".", -1)
 
 			userID, err := strconv.Atoi(userIDStr)
 			if err != nil {
@@ -514,6 +518,8 @@ func HandleTopupUser(db *sql.DB) http.HandlerFunc {
 
 			// Get amount
 			amountStr := r.FormValue("amount")
+			// Konvertiere Komma zu Punkt für deutsches Zahlenformat
+			amountStr = strings.Replace(amountStr, ",", ".", -1)
 			amount, err = strconv.ParseFloat(amountStr, 64)
 			if err != nil || amount <= 0 {
 				http.Redirect(w, r, "/dashboard?error=Bitte geben Sie einen gültigen Betrag ein", http.StatusSeeOther)

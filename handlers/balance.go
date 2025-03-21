@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -43,6 +44,9 @@ func HandleBalanceTopup(db *sql.DB) http.HandlerFunc {
 			// Parse form values
 			cardNumber := r.FormValue("card_number")
 			amountStr := r.FormValue("amount")
+
+			// Konvertiere Komma zu Punkt für deutsches Zahlenformat
+			amountStr = strings.Replace(amountStr, ",", ".", -1)
 
 			if cardNumber == "" {
 				http.Redirect(w, r, "/balance/topup?error=Kartennummer ist erforderlich", http.StatusSeeOther)

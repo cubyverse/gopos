@@ -98,10 +98,9 @@ templ ProductForm(data ProductFormData) {
 						</label>
 						<div class="relative">
 							<input
-								type="number"
+								type="text"
 								id="price"
 								name="price"
-								step="0.01"
 								required
 								class="block w-full px-4 py-3 text-xl rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
 								placeholder="0.00"
@@ -139,19 +138,54 @@ templ ProductForm(data ProductFormData) {
 			</div>
 		</div>
 		<script>
-            function handleBarcodeKeydown(event) {
-                if (event.key === 'Enter') {
-                    event.preventDefault();
-                    document.getElementById('name').focus();
-                }
-            }
-
-            // Automatically select barcode when focused
-            document.getElementById('barcode').addEventListener('focus', function() {
-                if (this.value) {
-                    this.select();
-                }
-            });
-        </script>
+			document.addEventListener('DOMContentLoaded', function() {
+				// Preis-Input Komma zu Punkt Konvertierung
+				const priceInput = document.getElementById('price');
+				if (priceInput) {
+					// Bei jeder Änderung der Eingabe
+					priceInput.addEventListener('input', function() {
+						// Nur Zahlen, Komma und Punkt erlauben
+						this.value = this.value.replace(/[^0-9.,]/g, '');
+						// Komma zu Punkt umwandeln - alle Kommas ersetzen
+						this.value = this.value.replace(/,/g, '.');
+						// Sicherstellen, dass höchstens ein Dezimalpunkt vorhanden ist
+						const parts = this.value.split('.');
+						if (parts.length > 2) {
+							this.value = parts[0] + '.' + parts.slice(1).join('');
+						}
+					});
+					
+					// Beim Absenden des Formulars
+					const form = document.getElementById('productForm');
+					if (form) {
+						form.addEventListener('submit', function() {
+							// Nochmal sicherstellen, dass alle Kommas in Punkte umgewandelt wurden
+							priceInput.value = priceInput.value.replace(/,/g, '.');
+						});
+					}
+				}
+				
+				// Barcode Handling für Enter-Taste
+				function handleBarcodeKeydown(event) {
+					if (event.key === 'Enter') {
+						event.preventDefault();
+						document.getElementById('name').focus();
+					}
+				}
+				
+				// Barcode-Funktion global verfügbar machen
+				window.handleBarcodeKeydown = handleBarcodeKeydown;
+				
+				// Automatically select barcode when focused
+				const barcodeInput = document.getElementById('barcode');
+				if (barcodeInput) {
+					barcodeInput.addEventListener('focus', function() {
+						if (this.value) {
+							this.select();
+						}
+					});
+				}
+			});
+		</script>
 	}
 }

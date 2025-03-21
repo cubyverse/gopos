@@ -122,7 +122,10 @@ func HandleNewProduct(db *sql.DB) http.HandlerFunc {
 		// Get form values
 		barcode := strings.TrimSpace(r.FormValue("barcode"))
 		name := strings.TrimSpace(r.FormValue("name"))
-		price, err := strconv.ParseFloat(r.FormValue("price"), 64)
+		priceStr := r.FormValue("price")
+		// Konvertiere Komma zu Punkt für deutsches Zahlenformat
+		priceStr = strings.Replace(priceStr, ",", ".", -1)
+		price, err := strconv.ParseFloat(priceStr, 64)
 
 		// Validate required fields
 		if barcode == "" || name == "" {
@@ -319,7 +322,10 @@ func HandleEditProduct(db *sql.DB) http.HandlerFunc {
 			// Get form values
 			barcode := strings.TrimSpace(r.FormValue("barcode"))
 			name := strings.TrimSpace(r.FormValue("name"))
-			price, err := strconv.ParseFloat(r.FormValue("price"), 64)
+			priceStr := r.FormValue("price")
+			// Konvertiere Komma zu Punkt für deutsches Zahlenformat
+			priceStr = strings.Replace(priceStr, ",", ".", -1)
+			price, err := strconv.ParseFloat(priceStr, 64)
 
 			// Create a product object to preserve form data
 			product := &components.Product{
@@ -494,5 +500,164 @@ func HandleDeleteProduct(db *sql.DB) http.HandlerFunc {
 		}
 
 		http.Redirect(w, r, "/products", http.StatusSeeOther)
+	}
+}
+
+// HandleProductSearch handles searching for products
+func HandleProductSearch(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get search query
+		query := strings.TrimSpace(r.URL.Query().Get("q"))
+
+		// Query the database for products matching the search term
+		rows, err := db.Query(`
+			SELECT id, name, barcode, price, created_at 
+			FROM products 
+			WHERE name LIKE ? OR barcode LIKE ?
+			ORDER BY created_at DESC
+		`, "%"+query+"%", "%"+query+"%")
+
+		if err != nil {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		var products []components.Product
+		for rows.Next() {
+			var product components.Product
+			err := rows.Scan(&product.ID, &product.Name, &product.Barcode, &product.Price, &product.CreatedAt)
+			if err != nil {
+				http.Error(w, "Database error", http.StatusInternalServerError)
+				return
+			}
+			products = append(products, product)
+		}
+
+		// Get user from session
+		session, err := store.Get(r, "pos-session")
+		if err != nil {
+			http.Error(w, "Session error", http.StatusInternalServerError)
+			return
+		}
+
+		userName, ok := session.Values["name"].(string)
+		if !ok {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		userRole, ok := session.Values["role"].(string)
+		if !ok {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// Create component with search results
+		data := components.ProductsData{
+			Title:     "Produktsuche",
+			UserName:  userName,
+			Role:      userRole,
+			CSRFToken: generateCSRFToken(),
+			Products:  products,
+		}
+
+		// Render only the products table component
+		components.ProductsTable(data).Render(r.Context(), w)
+	}
+}
+
+// HandleProductFilter handles the filtering and sorting of products
+func HandleProductFilter(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get user from session
+		session, err := store.Get(r, "pos-session")
+		if err != nil {
+			http.Error(w, "Session error", http.StatusInternalServerError)
+			return
+		}
+
+		userName, ok := session.Values["name"].(string)
+		if !ok {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		userRole, ok := session.Values["role"].(string)
+		if !ok {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		userID, ok := session.Values["user_id"].(int)
+		if !ok {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// Get user balance
+		var balance float64
+		err = db.QueryRow("SELECT balance FROM users WHERE id = ?", userID).Scan(&balance)
+		if err != nil {
+			http.Error(w, "Error loading user balance", http.StatusInternalServerError)
+			return
+		}
+
+		// Get sort parameter
+		sortBy := r.URL.Query().Get("sort")
+
+		// Query the database with correct sorting
+		var rows *sql.Rows
+
+		switch sortBy {
+		case "name":
+			rows, err = db.Query(`
+				SELECT id, name, barcode, price, created_at 
+				FROM products 
+				ORDER BY name ASC
+			`)
+		case "price":
+			rows, err = db.Query(`
+				SELECT id, name, barcode, price, created_at 
+				FROM products 
+				ORDER BY price ASC
+			`)
+		default: // "created" oder leer
+			rows, err = db.Query(`
+				SELECT id, name, barcode, price, created_at 
+				FROM products 
+				ORDER BY created_at DESC
+			`)
+		}
+
+		if err != nil {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		var products []components.Product
+		for rows.Next() {
+			var product components.Product
+			err := rows.Scan(&product.ID, &product.Name, &product.Barcode, &product.Price, &product.CreatedAt)
+			if err != nil {
+				http.Error(w, "Database error", http.StatusInternalServerError)
+				return
+			}
+			products = append(products, product)
+		}
+
+		// Create component with filtered results
+		data := components.ProductsData{
+			Title:     "Produktliste",
+			UserName:  userName,
+			Role:      userRole,
+			Balance:   balance,
+			CSRFToken: generateCSRFToken(),
+			Products:  products,
+		}
+
+		// Render only the products table component
+		components.ProductsTable(data).Render(r.Context(), w)
 	}
 }

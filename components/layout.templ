@@ -31,6 +31,18 @@ templ head(data PageData) {
 	<script src="https://unpkg.com/htmx.org@1.9.6"></script>
 	<link href="/static/css/output.css" rel="stylesheet"/>
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
+	<style>
+		.htmx-indicator {
+			opacity: 0;
+			transition: opacity 200ms ease-in;
+		}
+		.htmx-request .htmx-indicator, .htmx-request.htmx-indicator {
+			opacity: 1;
+		}
+		.htmx-request.htmx-indicator {
+			display: inline-block;
+		}
+	</style>
 	<script>
         // Add CSRF token to all HTMX requests
         document.body.addEventListener('htmx:configRequest', function(evt) {
@@ -62,13 +74,12 @@ templ scripts() {
                     }
                 });
             });
-
-            // Auto-focus on card_number input if it exists
-            const cardInput = document.getElementById('card_number');
-            if (cardInput) {
-                cardInput.focus();
-            }
         });
+
+        // Function to handle product sorting
+        function sortProducts(sortValue) {
+            htmx.ajax('GET', '/products/filter?sort=' + sortValue, {target: '#products-table'});
+        }
     </script>
 }
 

@@ -67,11 +67,9 @@ templ BalanceTopup(data BalanceTopupData) {
 						<label for="amount" class="block text-sm font-medium text-gray-700">Betrag</label>
 						<div class="mt-1 relative rounded-md shadow-sm">
 							<input
-								type="number"
+								type="text"
 								name="amount"
 								id="amount"
-								step="0.01"
-								min="0.01"
 								required
 								class="block w-full pr-10 rounded-md border-gray-300 focus:border-brand-500 focus:ring-brand-500"
 							/>
@@ -91,5 +89,34 @@ templ BalanceTopup(data BalanceTopupData) {
 				</form>
 			}
 		</div>
+		<script>
+			document.addEventListener('DOMContentLoaded', function() {
+				// Betrags-Input Komma zu Punkt Konvertierung
+				const amountInput = document.getElementById('amount');
+				if (amountInput) {
+					// Bei jeder Änderung der Eingabe
+					amountInput.addEventListener('input', function() {
+						// Nur Zahlen, Komma und Punkt erlauben
+						this.value = this.value.replace(/[^0-9.,]/g, '');
+						// Komma zu Punkt umwandeln - alle Kommas ersetzen
+						this.value = this.value.replace(/,/g, '.');
+						// Sicherstellen, dass höchstens ein Dezimalpunkt vorhanden ist
+						const parts = this.value.split('.');
+						if (parts.length > 2) {
+							this.value = parts[0] + '.' + parts.slice(1).join('');
+						}
+					});
+					
+					// Beim Absenden des Formulars
+					const form = amountInput.closest('form');
+					if (form) {
+						form.addEventListener('submit', function() {
+							// Nochmal sicherstellen, dass alle Kommas in Punkte umgewandelt wurden
+							amountInput.value = amountInput.value.replace(/,/g, '.');
+						});
+					}
+				}
+			});
+		</script>
 	}
 }

@@ -89,11 +89,9 @@ templ TopupForm(data TopupData) {
 						</label>
 						<div class="relative">
 							<input
-								type="number"
+								type="text"
 								id="amount"
 								name="amount"
-								step="0.01"
-								min="0.01"
 								required
 								class="block w-full pl-12 pr-4 py-3 text-lg rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white/50"
 								placeholder="0.00"
@@ -115,5 +113,35 @@ templ TopupForm(data TopupData) {
 				</form>
 			</div>
 		</div>
+		
+		<script>
+			document.addEventListener('DOMContentLoaded', function() {
+				// Betrags-Input Komma zu Punkt Konvertierung
+				const amountInput = document.getElementById('amount');
+				if (amountInput) {
+					// Bei jeder Änderung der Eingabe
+					amountInput.addEventListener('input', function() {
+						// Nur Zahlen, Komma und Punkt erlauben
+						this.value = this.value.replace(/[^0-9.,]/g, '');
+						// Komma zu Punkt umwandeln - alle Kommas ersetzen
+						this.value = this.value.replace(/,/g, '.');
+						// Sicherstellen, dass höchstens ein Dezimalpunkt vorhanden ist
+						const parts = this.value.split('.');
+						if (parts.length > 2) {
+							this.value = parts[0] + '.' + parts.slice(1).join('');
+						}
+					});
+					
+					// Beim Absenden des Formulars
+					const form = amountInput.closest('form');
+					if (form) {
+						form.addEventListener('submit', function() {
+							// Nochmal sicherstellen, dass alle Kommas in Punkte umgewandelt wurden
+							amountInput.value = amountInput.value.replace(/,/g, '.');
+						});
+					}
+				}
+			});
+		</script>
 	}
 }

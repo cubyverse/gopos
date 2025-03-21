@@ -174,10 +174,9 @@ templ UserForm(data UserFormData) {
 							</label>
 							<div class="relative">
 								<input
-									type="number"
+									type="text"
 									id="balance"
 									name="balance"
-									step="0.01"
 									class="block w-full px-4 py-3 text-xl rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
 									value={ fmt.Sprintf("%.2f", data.User.Balance) }
 								/>
@@ -224,6 +223,34 @@ templ UserForm(data UserFormData) {
             document.getElementById('card_number').addEventListener('focus', function() {
                 if (this.value) {
                     this.select();
+                }
+            });
+
+            document.addEventListener('DOMContentLoaded', function() {
+                // Guthaben-Input Komma zu Punkt Konvertierung
+                const balanceInput = document.getElementById('balance');
+                if (balanceInput) {
+                    // Bei jeder Änderung der Eingabe
+                    balanceInput.addEventListener('input', function() {
+                        // Nur Zahlen, Komma und Punkt erlauben
+                        this.value = this.value.replace(/[^0-9.,]/g, '');
+                        // Komma zu Punkt umwandeln - alle Kommas ersetzen
+                        this.value = this.value.replace(/,/g, '.');
+                        // Sicherstellen, dass höchstens ein Dezimalpunkt vorhanden ist
+                        const parts = this.value.split('.');
+                        if (parts.length > 2) {
+                            this.value = parts[0] + '.' + parts.slice(1).join('');
+                        }
+                    });
+                    
+                    // Beim Absenden des Formulars
+                    const form = balanceInput.closest('form');
+                    if (form) {
+                        form.addEventListener('submit', function() {
+                            // Nochmal sicherstellen, dass alle Kommas in Punkte umgewandelt wurden
+                            balanceInput.value = balanceInput.value.replace(/,/g, '.');
+                        });
+                    }
                 }
             });
         </script>
