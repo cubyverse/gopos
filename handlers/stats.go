@@ -39,12 +39,12 @@ func HandleStats(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		// Get daily revenue
+		// Get daily revenue with timestamp format awareness
 		var dailyRevenue float64
 		err = db.QueryRow(`
             SELECT COALESCE(SUM(total), 0)
             FROM transactions
-            WHERE DATE(created_at) = DATE('now')
+            WHERE substr(created_at, 1, 10) = substr(datetime('now', 'localtime'), 1, 10)
         `).Scan(&dailyRevenue)
 		if err != nil {
 			log.Printf("Stats error: failed to get daily revenue: %v", err)
@@ -52,17 +52,45 @@ func HandleStats(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		// Get monthly revenue
+		// Get monthly revenue with timestamp format awareness
 		var monthlyRevenue float64
 		err = db.QueryRow(`
             SELECT COALESCE(SUM(total), 0)
             FROM transactions
-            WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+            WHERE substr(created_at, 1, 7) = substr(datetime('now', 'localtime'), 1, 7)
         `).Scan(&monthlyRevenue)
 		if err != nil {
 			log.Printf("Stats error: failed to get monthly revenue: %v", err)
 			http.Error(w, "Database error", http.StatusInternalServerError)
 			return
+		}
+
+		// Get transaction dates to debug
+		rows, err := db.Query(`
+			SELECT 
+				created_at, 
+				total,
+				substr(created_at, 1, 10) as day_part,
+				substr(datetime('now', 'localtime'), 1, 10) as today_part,
+				substr(created_at, 1, 7) as month_part,
+				substr(datetime('now', 'localtime'), 1, 7) as current_month_part,
+				CASE WHEN substr(created_at, 1, 10) = substr(datetime('now', 'localtime'), 1, 10) THEN 'YES' ELSE 'NO' END as is_today,
+				CASE WHEN substr(created_at, 1, 7) = substr(datetime('now', 'localtime'), 1, 7) THEN 'YES' ELSE 'NO' END as is_this_month
+			FROM transactions 
+			ORDER BY created_at DESC 
+			LIMIT 3
+		`)
+		if err == nil {
+			defer rows.Close()
+			log.Printf("Stats debug: Transaction dates analysis:")
+			for rows.Next() {
+				var date, total, dayPart, todayPart, monthPart, currentMonthPart, isToday, isThisMonth string
+				if err := rows.Scan(&date, &total, &dayPart, &todayPart, &monthPart, &currentMonthPart, &isToday, &isThisMonth); err == nil {
+					log.Printf("  Date: %s, Total: %s", date, total)
+					log.Printf("    Day part: %s, Today part: %s, Is Today: %s", dayPart, todayPart, isToday)
+					log.Printf("    Month part: %s, Current Month part: %s, Is This Month: %s", monthPart, currentMonthPart, isThisMonth)
+				}
+			}
 		}
 
 		// Get total revenue (all time)

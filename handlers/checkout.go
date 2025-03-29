@@ -226,10 +226,14 @@ func HandleCompleteCheckout(db *sql.DB) http.HandlerFunc {
 		// Record transaction
 		log.Printf("[CHECKOUT] Recording transaction by cashier: %s (ID: %d)", cashierName, cashierID)
 
+		// Get current time and log it for debugging
+		now := time.Now()
+		log.Printf("[CHECKOUT] Transaction timestamp: %s", now.Format(time.RFC3339))
+
 		result, err = tx.Exec(`
 			INSERT INTO transactions (user_id, cashier_id, total, created_at)
 			VALUES (?, ?, ?, ?)
-		`, user.ID, cashierID, request.Total, time.Now())
+		`, user.ID, cashierID, request.Total, now)
 
 		if err != nil {
 			log.Printf("[CHECKOUT] Error recording transaction: %v", err)
@@ -239,6 +243,13 @@ func HandleCompleteCheckout(db *sql.DB) http.HandlerFunc {
 
 		transactionID, _ := result.LastInsertId()
 		log.Printf("[CHECKOUT] Transaction recorded with ID: %d", transactionID)
+
+		// Check how the date was stored by retrieving it
+		var storedDate string
+		err = tx.QueryRow("SELECT created_at FROM transactions WHERE id = ?", transactionID).Scan(&storedDate)
+		if err == nil {
+			log.Printf("[CHECKOUT] Transaction date stored as: %s", storedDate)
+		}
 
 		// Record transaction items
 		for _, item := range request.Items {
